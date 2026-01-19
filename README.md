@@ -2,6 +2,12 @@
 
 A comprehensive, web-based inventory management system designed for tracking Stock Keeping Units (SKUs) with full support for NSF certification requirements. Built with Python, FastAPI, and SQLite - perfect for brands seeking NSF Certified for Sport or other NSF certifications.
 
+## 🚀 Quick Start
+
+**Want to deploy with a public URL?** → See [DEPLOYMENT.md](DEPLOYMENT.md) for step-by-step instructions to deploy to Railway, Render, or Fly.io (5 minutes to get a public URL!)
+
+**Running locally?** → Jump to [Quick Start](#quick-start) section below
+
 ## Features
 
 ### Core Functionality
@@ -380,18 +386,33 @@ pytest --cov=app --cov-report=html
 5. **SQL Injection**: Protected by SQLAlchemy ORM
 6. **Sensitive Data**: Internal notes and pricing can be excluded from exports
 
-## Deployment Recommendations
+## Deployment
+
+### 🌐 Deploy to the Cloud
+
+**Want a public URL accessible from anywhere?**
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for complete step-by-step guides to deploy to:
+- **Railway** (Recommended - 5 minute setup, free tier)
+- **Render** (Free tier with auto-sleep)
+- **Fly.io** (Global edge deployment)
+
+Each guide includes:
+- ✅ One-click deployment from GitHub
+- ✅ Automatic HTTPS
+- ✅ Custom domain setup
+- ✅ Environment variable configuration
+- ✅ Database options (SQLite → PostgreSQL)
 
 ### For Production
 
 1. **Use PostgreSQL** instead of SQLite for better concurrent access
-2. **Set up HTTPS** with proper SSL certificates
+2. **Set up HTTPS** with proper SSL certificates (automatic with Railway/Render)
 3. **Configure authentication** for user access control
 4. **Enable CORS** carefully for API access
 5. **Use environment variables** for all configuration
 6. **Set up automated backups** of your database
 7. **Monitor application logs** for errors and issues
-8. **Use a reverse proxy** (nginx/Apache) in front of uvicorn
 
 ### Scaling Options
 
