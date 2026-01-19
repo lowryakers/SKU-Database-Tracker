@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Export Data - SKU Database Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h2><i class="fas fa-file-export"></i> Export SKU Data</h2>
+        <p class="text-muted">Export your SKU data for NSF certification submissions, partner sharing, or record keeping</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                Export Options
+            </div>
+            <div class="card-body">
+                <form id="exportForm">
+                    <div class="mb-3">
+                        <label class="form-label required">Export Format</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="format" id="formatExcel" value="excel" checked>
+                                <label class="form-check-label" for="formatExcel">
+                                    <i class="fas fa-file-excel text-success"></i> Excel (.xlsx)
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="format" id="formatPDF" value="pdf">
+                                <label class="form-check-label" for="formatPDF">
+                                    <i class="fas fa-file-pdf text-danger"></i> PDF
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="format" id="formatCSV" value="csv">
+                                <label class="form-check-label" for="formatCSV">
+                                    <i class="fas fa-file-csv text-primary"></i> CSV
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="certType" class="form-label">Filter by Certification Type</label>
+                        <select class="form-select" id="certType" name="certification_type">
+                            <option value="">All Products</option>
+                            {% for cert_type in cert_types %}
+                            <option value="{{ cert_type }}">{{ cert_type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeIngredients" name="include_ingredients" checked>
+                            <label class="form-check-label" for="includeIngredients">
+                                Include ingredient details
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="includeInternal" name="include_internal_notes">
+                            <label class="form-check-label" for="includeInternal">
+                                Include internal notes (not recommended for external sharing)
+                            </label>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-download"></i> Generate Export
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> Export Guide
+            </div>
+            <div class="card-body">
+                <h6>Excel Format</h6>
+                <p class="small">Best for NSF submissions. Includes multiple sheets with SKU data and ingredients.</p>
+
+                <h6>PDF Format</h6>
+                <p class="small">Professional reports for sharing with partners, vendors, or certification bodies.</p>
+
+                <h6>CSV Format</h6>
+                <p class="small">Simple format for importing into other systems or spreadsheet applications.</p>
+
+                <div class="alert alert-info small mt-3">
+                    <strong>NSF Tip:</strong> For NSF certification submissions, use Excel format with all ingredients included.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('exportForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const format = document.querySelector('input[name="format"]:checked').value;
+    const certType = document.getElementById('certType').value;
+    const includeIngredients = document.getElementById('includeIngredients').checked;
+    const includeInternal = document.getElementById('includeInternal').checked;
+
+    const requestData = {
+        format: format,
+        certification_type: certType || null,
+        include_ingredients: includeIngredients,
+        include_internal_notes: includeInternal
+    };
+
+    try {
+        const response = await fetch(`/api/v1/skus/export/${format}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sku_export_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+
+            alert('Export completed successfully!');
+        } else {
+            const error = await response.json();
+            alert('Export failed: ' + (error.detail || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Export failed. Please try again.');
+    }
+});
+</script>
+{% endblock %}

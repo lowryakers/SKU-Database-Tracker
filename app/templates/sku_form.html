@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}{{ action }} SKU - SKU Database Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h2><i class="fas fa-{% if sku %}edit{% else %}plus-circle{% endif %}"></i> {{ action }} SKU</h2>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-info-circle"></i> Fill in as much information as possible. Fields marked with <span class="text-danger">*</span> are required. Use the browser's API documentation at <a href="/docs" target="_blank">/docs</a> to submit via API.
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <p class="text-muted">
+            For the complete form with all NSF fields, please use the API at <code>POST /api/v1/skus</code> or <code>PUT /api/v1/skus/{id}</code>.
+            Visit <a href="/docs" target="_blank">/docs</a> for the interactive API documentation where you can fill in all fields.
+        </p>
+
+        <div class="mt-4">
+            <h5>Quick Add via API:</h5>
+            <ol>
+                <li>Click here to open the API documentation: <a href="/docs#/skus/create_sku_api_v1_skus_post" target="_blank" class="btn btn-sm btn-primary"><i class="fas fa-external-link-alt"></i> Open API Docs</a></li>
+                <li>Click "Try it out" button</li>
+                <li>Fill in the JSON form with your product details</li>
+                <li>Click "Execute" to create the SKU</li>
+            </ol>
+        </div>
+
+        <div class="alert alert-success mt-4">
+            <h6><i class="fas fa-lightbulb"></i> Tip: Using the API Documentation</h6>
+            <p>The API documentation provides a comprehensive form with all NSF certification fields including:</p>
+            <ul class="mb-0">
+                <li>Complete product information (name, brand, SKU code, category)</li>
+                <li>Formulation and ingredient details</li>
+                <li>Manufacturing facility information</li>
+                <li>NSF certification tracking (type, status, dates, test results)</li>
+                <li>Supplier and contact information</li>
+                <li>Label claims and intended use</li>
+                <li>Documentation links (SDS, COA, label images)</li>
+            </ul>
+        </div>
+
+        <div class="mt-4">
+            <a href="/skus" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to SKU List
+            </a>
+            <a href="/docs" target="_blank" class="btn btn-primary">
+                <i class="fas fa-code"></i> Go to API Documentation
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

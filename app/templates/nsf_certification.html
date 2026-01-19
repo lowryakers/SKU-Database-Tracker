@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}NSF Certification - SKU Database Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h2><i class="fas fa-certificate"></i> NSF Certification Tracking</h2>
+        <p class="text-muted">Products requiring NSF certification</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="fas fa-info-circle"></i> NSF Certification Overview
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>NSF Certified for Sport Requirements:</h6>
+                <ul class="small">
+                    <li>Testing for 290+ banned substances</li>
+                    <li>Compliance with NSF/ANSI 173 standards</li>
+                    <li>Complete ingredient disclosure</li>
+                    <li>Facility audits and quality control</li>
+                    <li>Annual re-testing and certification renewal</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Required Documentation:</h6>
+                <ul class="small">
+                    <li>Complete formulation with ingredient amounts</li>
+                    <li>Manufacturing facility information</li>
+                    <li>Label claims and intended use</li>
+                    <li>Safety Data Sheets (SDS)</li>
+                    <li>Certificate of Analysis (COA)</li>
+                    <li>Quality control procedures</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>SKU Code</th>
+                        <th>Product Name</th>
+                        <th>Certification Type</th>
+                        <th>Status</th>
+                        <th>Cert Number</th>
+                        <th>Expiration</th>
+                        <th>Next Audit</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sku in skus %}
+                    <tr>
+                        <td><strong>{{ sku.sku_code }}</strong></td>
+                        <td>{{ sku.name }}</td>
+                        <td>{{ sku.nsf_certification_type or '-' }}</td>
+                        <td>
+                            {% if sku.nsf_certification_status == 'Certified' %}
+                                <span class="badge bg-success">Certified</span>
+                            {% elif sku.nsf_certification_status == 'In Progress' %}
+                                <span class="badge bg-warning text-dark">In Progress</span>
+                            {% elif sku.nsf_certification_status == 'Expired' %}
+                                <span class="badge bg-danger">Expired</span>
+                            {% elif sku.nsf_certification_status == 'Pending Renewal' %}
+                                <span class="badge bg-warning text-dark">Pending Renewal</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Not Started</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ sku.nsf_certification_number or '-' }}</td>
+                        <td>
+                            {% if sku.nsf_expiration_date %}
+                                {{ sku.nsf_expiration_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if sku.nsf_next_audit_date %}
+                                {{ sku.nsf_next_audit_date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/skus/{{ sku.id }}/edit" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if not skus %}
+            <p class="text-center text-muted py-4">
+                No products requiring NSF certification. <a href="/skus/new">Add a product</a> and mark it as requiring NSF certification.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <i class="fas fa-external-link-alt"></i> Helpful Resources
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <h6>NSF Certified for Sport</h6>
+                <p class="small">Learn about certification requirements for dietary supplements and sports nutrition.</p>
+                <a href="https://www.nsfsport.com/" target="_blank" class="btn btn-sm btn-outline-primary">
+                    Visit NSF Sport <i class="fas fa-external-link-alt"></i>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <h6>NSF Certification Portal</h6>
+                <p class="small">Access NSF's certification application and product listing portal.</p>
+                <a href="https://www.nsf.org/certified-products-systems" target="_blank" class="btn btn-sm btn-outline-primary">
+                    NSF Portal <i class="fas fa-external-link-alt"></i>
+                </a>
+            </div>
+            <div class="col-md-4">
+                <h6>Export for NSF</h6>
+                <p class="small">Generate comprehensive reports for NSF certification submissions.</p>
+                <a href="/export" class="btn btn-sm btn-primary">
+                    <i class="fas fa-file-export"></i> Export Data
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SKU Database Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
+        <p class="text-muted">Overview of your SKU inventory and NSF certification status</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Total SKUs -->
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body">
+                <h6 class="text-muted">Total SKUs</h6>
+                <h2>{{ stats.total_skus }}</h2>
+                <small><i class="fas fa-boxes"></i> All Products</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active SKUs -->
+    <div class="col-md-3">
+        <div class="card stat-card success">
+            <div class="card-body">
+                <h6 class="text-muted">Active Products</h6>
+                <h2>{{ stats.active_skus }}</h2>
+                <small><i class="fas fa-check-circle"></i> Currently Active</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Requires NSF -->
+    <div class="col-md-3">
+        <div class="card stat-card warning">
+            <div class="card-body">
+                <h6 class="text-muted">Requires NSF</h6>
+                <h2>{{ stats.requires_nsf_certification }}</h2>
+                <small><i class="fas fa-certificate"></i> Needs Certification</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certified -->
+    <div class="col-md-3">
+        <div class="card stat-card success">
+            <div class="card-body">
+                <h6 class="text-muted">NSF Certified</h6>
+                <h2>{{ stats.nsf_status_breakdown.get('Certified', 0) }}</h2>
+                <small><i class="fas fa-award"></i> Fully Certified</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <!-- NSF Certification Status -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-certificate"></i> NSF Certification Status
+            </div>
+            <div class="card-body">
+                {% if stats.nsf_status_breakdown %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th class="text-end">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for status, count in stats.nsf_status_breakdown.items() %}
+                            <tr>
+                                <td>
+                                    {% if status == 'Certified' %}
+                                        <span class="badge bg-success">{{ status }}</span>
+                                    {% elif status == 'In Progress' %}
+                                        <span class="badge bg-warning text-dark">{{ status }}</span>
+                                    {% elif status == 'Expired' %}
+                                        <span class="badge bg-danger">{{ status }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ status }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end"><strong>{{ count }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">No SKUs with NSF status yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Certification Types -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-list-check"></i> Certification Types
+            </div>
+            <div class="card-body">
+                {% if stats.certification_types %}
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th class="text-end">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cert_type, count in stats.certification_types.items() %}
+                            <tr>
+                                <td>{{ cert_type }}</td>
+                                <td class="text-end"><strong>{{ count }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">No certification types assigned yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-rocket"></i> Quick Actions
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="/skus/new" class="btn btn-primary w-100 mb-2">
+                            <i class="fas fa-plus"></i> Add New SKU
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="/skus" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="fas fa-list"></i> View All SKUs
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="/export" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="fas fa-file-export"></i> Export Data
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="/skus/nsf" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="fas fa-certificate"></i> NSF Products
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> NSF Certification Guide
+            </div>
+            <div class="card-body">
+                <h6>Required Information for NSF Certification:</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul>
+                            <li><strong>Product Information:</strong> Name, SKU code, brand, category</li>
+                            <li><strong>Formulation:</strong> Complete ingredient list with amounts</li>
+                            <li><strong>Manufacturing:</strong> Facility details, location, batch/lot numbers</li>
+                            <li><strong>Supplier Data:</strong> Contact information and addresses</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul>
+                            <li><strong>Label Claims:</strong> All product claims and intended use</li>
+                            <li><strong>Documentation:</strong> SDS, COA, label images</li>
+                            <li><strong>Quality Control:</strong> Testing results and procedures</li>
+                            <li><strong>Contact Info:</strong> Primary contact for certification</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> For NSF Certified for Sport, products must be tested for 290+ banned substances and meet NSF/ANSI 173 standards.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

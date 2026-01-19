@@ -8,6 +8,6 @@ class Base(DeclarativeBase):
     pass
 
 
-from app.models.sku import SKU
+from app.models.sku import SKU, Ingredient
 
-__all__ = ["Base", "SKU"]
+__all__ = ["Base", "SKU", "Ingredient"]
