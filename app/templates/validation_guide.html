@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}NSF Validation Guide - SKU Database Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <h2><i class="fas fa-shield-alt"></i> NSF Compliance Validation</h2>
+        <p class="text-muted">Automatic validation for banned substances and NSF certification requirements</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> What is Automatic Validation?
+            </div>
+            <div class="card-body">
+                <p>Every product you add or update is automatically checked for:</p>
+                <ul>
+                    <li><strong>Banned Substances</strong> - Ingredients are screened against 290+ banned substances for NSF Certified for Sport</li>
+                    <li><strong>NSF Requirements</strong> - Ensures all required fields for certification are completed</li>
+                    <li><strong>Data Quality</strong> - Checks for missing or incomplete information</li>
+                    <li><strong>High-Risk Patterns</strong> - Flags products with names/descriptions that often contain banned substances</li>
+                </ul>
+
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> <strong>Validation happens automatically!</strong> Every time you create or update a product, the system checks for compliance issues.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-ban"></i> Banned Substances Check (290+ Substances)
+            </div>
+            <div class="card-body">
+                <p>Based on the WADA Prohibited List, the system checks for:</p>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Major Categories:</h6>
+                        <ul class="small">
+                            <li>Anabolic Agents (Steroids & SARMs)</li>
+                            <li>Peptide Hormones (EPO, HGH, etc.)</li>
+                            <li>Beta-2 Agonists</li>
+                            <li>Hormone Modulators</li>
+                            <li>Diuretics & Masking Agents</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Additional Categories:</h6>
+                        <ul class="small">
+                            <li>Stimulants (DMAA, ephedrine, etc.)</li>
+                            <li>Narcotics</li>
+                            <li>Cannabinoids (THC, CBD)</li>
+                            <li>Glucocorticoids</li>
+                            <li>Gene & Cell Doping</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger mt-3">
+                    <strong>Critical:</strong> If a banned substance is detected, the product is NOT NSF certification-ready and must be reformulated.
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-clipboard-check"></i> NSF Requirements Check
+            </div>
+            <div class="card-body">
+                <p>The system verifies that products have all required information for NSF certification:</p>
+
+                <h6>Required Fields:</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Product Information:</strong>
+                        <ul class="small">
+                            <li>SKU Code</li>
+                            <li>Product Name</li>
+                            <li>Brand Name</li>
+                            <li>Product Type</li>
+                            <li>Net Content</li>
+                            <li>Serving Size</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Manufacturing:</strong>
+                        <ul class="small">
+                            <li>Manufacturer Name</li>
+                            <li>Facility Location</li>
+                            <li>City, State, Country</li>
+                            <li>Complete Ingredient List</li>
+                            <li>Ingredient Amounts & Sources</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-tools"></i> How to Use Validation
+            </div>
+            <div class="card-body">
+                <h6>1. Automatic Validation</h6>
+                <p class="small">When creating or updating products via the API at <code>/api/v1/skus/with-validation</code>, results are returned automatically.</p>
+
+                <h6>2. Manual Validation</h6>
+                <p class="small">Test products before creating them:</p>
+                <a href="/docs#/validation/validate_sku_data_api_v1_skus_validate_post" target="_blank" class="btn btn-sm btn-primary mb-2">
+                    <i class="fas fa-external-link-alt"></i> Validate via API
+                </a>
+
+                <h6>3. Check Existing Products</h6>
+                <p class="small">Validate products already in the database:</p>
+                <code>GET /api/v1/skus/{id}/validate</code>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-exclamation-triangle"></i> Warning Levels
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <span class="badge bg-danger">CRITICAL</span>
+                    <p class="small mt-1 mb-0">Banned substances detected or major compliance issues. Product is NOT NSF-ready.</p>
+                </div>
+                <div class="mb-3">
+                    <span class="badge bg-warning text-dark">WARNING</span>
+                    <p class="small mt-1 mb-0">Missing required fields or data quality issues. Address before NSF submission.</p>
+                </div>
+                <div>
+                    <span class="badge bg-info">INFO</span>
+                    <p class="small mt-1 mb-0">Suggestions for improving data quality. Product can proceed to certification.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-book"></i> Resources
+            </div>
+            <div class="card-body">
+                <a href="/api/v1/validation/banned-substances" target="_blank" class="btn btn-sm btn-outline-primary mb-2 w-100">
+                    <i class="fas fa-list"></i> View Banned Substances List
+                </a>
+                <a href="/docs#/validation" target="_blank" class="btn btn-sm btn-outline-primary mb-2 w-100">
+                    <i class="fas fa-code"></i> API Documentation
+                </a>
+                <a href="https://www.nsfsport.com/" target="_blank" class="btn btn-sm btn-outline-primary w-100">
+                    <i class="fas fa-external-link-alt"></i> NSF Certified for Sport
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

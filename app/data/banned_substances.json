@@ -1,0 +1,135 @@
+{
+  "metadata": {
+    "version": "2025.1",
+    "source": "NSF Certified for Sport - Based on WADA Prohibited List",
+    "last_updated": "2025-01-19",
+    "total_categories": 10,
+    "description": "290+ banned substances for NSF Certified for Sport certification"
+  },
+  "categories": {
+    "anabolic_agents": {
+      "name": "Anabolic Agents (Steroids & SARMs)",
+      "description": "Anabolic androgenic steroids (AAS) and Selective Androgen Receptor Modulators (SARMs)",
+      "keywords": [
+        "testosterone", "nandrolone", "stanozolol", "boldenone", "methandienone",
+        "oxandrolone", "trenbolone", "drostanolone", "mesterolone", "oxymetholone",
+        "andarine", "ostarine", "ligandrol", "testolone", "rad140", "lgd-4033",
+        "mk-2866", "s-4", "s-23", "yk-11", "cardarine", "gw501516",
+        "sarm", "prohormone", "dhea", "androstenedione", "androstenediol",
+        "1-testosterone", "4-androstenediol", "19-norandrostenedione"
+      ]
+    },
+    "peptide_hormones": {
+      "name": "Peptide Hormones, Growth Factors & Related Substances",
+      "description": "Including EPO, HGH, and growth hormone releasing agents",
+      "keywords": [
+        "erythropoietin", "epo", "hgh", "human growth hormone", "somatropin",
+        "igf", "igf-1", "insulin-like growth factor", "mechano growth factor", "mgf",
+        "hcg", "human chorionic gonadotropin", "lh", "luteinizing hormone",
+        "fsh", "follicle stimulating hormone", "corticotropin", "acth",
+        "growth hormone releasing", "ghrp", "ghrh", "ipamorelin", "mk-677",
+        "cjc-1295", "sermorelin", "tesamorelin", "hexarelin"
+      ]
+    },
+    "beta2_agonists": {
+      "name": "Beta-2 Agonists",
+      "description": "Bronchodilators and similar substances",
+      "keywords": [
+        "clenbuterol", "salbutamol", "albuterol", "formoterol", "salmeterol",
+        "terbutaline", "fenoterol", "bambuterol", "tulobuterol", "vilanterol",
+        "higenamine", "octopamine", "methylsynephrine", "oxilofrine"
+      ]
+    },
+    "hormone_modulators": {
+      "name": "Hormone & Metabolic Modulators",
+      "description": "Aromatase inhibitors, SERMs, and metabolic modulators",
+      "keywords": [
+        "anastrozole", "letrozole", "exemestane", "formestane", "testolactone",
+        "clomiphene", "clomid", "tamoxifen", "nolvadex", "raloxifene",
+        "toremifene", "fulvestrant", "insulin", "metformin", "trimetazidine",
+        "meldonium", "arimistane", "6-oxo", "atd", "formestane"
+      ]
+    },
+    "diuretics": {
+      "name": "Diuretics & Masking Agents",
+      "description": "Substances used to manipulate sample results",
+      "keywords": [
+        "furosemide", "hydrochlorothiazide", "chlorothiazide", "triamterene",
+        "spironolactone", "amiloride", "bumetanide", "torsemide",
+        "acetazolamide", "probenecid", "desmopressin", "plasma expander",
+        "epitestosterone", "5-alpha-reductase inhibitor", "finasteride", "dutasteride"
+      ]
+    },
+    "stimulants": {
+      "name": "Stimulants",
+      "description": "Central nervous system stimulants",
+      "keywords": [
+        "amphetamine", "methamphetamine", "methylphenidate", "modafinil",
+        "ephedrine", "pseudoephedrine", "methylephedrine", "synephrine",
+        "dmaa", "1,3-dimethylamylamine", "dmba", "amp citrate", "octodrine",
+        "methylhexanamine", "phenylethylamine", "hordenine", "n-methyltyramine",
+        "cocaine", "methylenedioxymethamphetamine", "mdma", "mda",
+        "sibutramine", "phenmetrazine", "phentermine", "benzylpiperazine",
+        "pemoline", "strychnine", "nikethamide", "fencamfamin",
+        "adrafinil", "armodafinil", "phenylpiracetam", "selegiline"
+      ]
+    },
+    "narcotics": {
+      "name": "Narcotics",
+      "description": "Opioid pain relievers and related substances",
+      "keywords": [
+        "morphine", "codeine", "fentanyl", "oxycodone", "hydrocodone",
+        "methadone", "buprenorphine", "diamorphine", "heroin", "hydromorphone",
+        "oxymorphone", "tramadol", "tapentadol", "pethidine", "meperidine"
+      ]
+    },
+    "cannabinoids": {
+      "name": "Cannabinoids",
+      "description": "THC and synthetic cannabinoids",
+      "keywords": [
+        "thc", "tetrahydrocannabinol", "cannabis", "marijuana", "hashish",
+        "cbd", "cannabidiol", "cannabinoid", "synthetic cannabinoid",
+        "spice", "k2", "jwh-018", "jwh-073", "cp-47497"
+      ]
+    },
+    "glucocorticoids": {
+      "name": "Glucocorticoids",
+      "description": "Corticosteroids (prohibited in-competition)",
+      "keywords": [
+        "prednisone", "prednisolone", "dexamethasone", "betamethasone",
+        "triamcinolone", "methylprednisolone", "hydrocortisone", "cortisone",
+        "budesonide", "fluticasone", "mometasone", "beclometasone"
+      ]
+    },
+    "blood_doping": {
+      "name": "Gene & Cell Doping, Blood Manipulation",
+      "description": "Blood transfusions, gene doping, and manipulation",
+      "keywords": [
+        "blood transfusion", "autologous transfusion", "homologous transfusion",
+        "blood manipulation", "gene doping", "gene therapy", "gene editing",
+        "epo gene", "myostatin inhibitor", "ace inhibitor", "peroxisome"
+      ]
+    }
+  },
+  "high_risk_ingredients": {
+    "description": "Common supplement ingredients that may be contaminated or misrepresented",
+    "keywords": [
+      "yohimbe", "yohimbine", "rauwolscine", "beta-alanine", "deer antler",
+      "velvet antler", "tribulus terrestris", "horny goat weed", "icariin",
+      "longjack", "tongkat ali", "mucuna pruriens", "wild yam extract",
+      "pine pollen", "bulbine natalensis", "fadogia agrestis",
+      "turkesterone", "ecdysterone", "laxogenin", "epicatechin"
+    ]
+  },
+  "warning_patterns": [
+    "proprietary blend",
+    "anabolic",
+    "testosterone booster",
+    "muscle builder",
+    "fat burner extreme",
+    "pre-workout extreme",
+    "hardcore",
+    "pro-hormone",
+    "designer supplement"
+  ]
+}

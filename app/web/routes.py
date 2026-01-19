@@ -140,3 +140,12 @@ async def export_page(request: Request, db: AsyncSession = Depends(get_db)):
         "export.html",
         {"request": request, "skus": skus, "cert_types": sorted(cert_types)}
     )
+
+
+@router.get("/validation", response_class=HTMLResponse)
+async def validation_guide_page(request: Request):
+    """NSF compliance validation guide page."""
+    return templates.TemplateResponse(
+        "validation_guide.html",
+        {"request": request}
+    )

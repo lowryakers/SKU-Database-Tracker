@@ -139,6 +139,9 @@
                     <a class="nav-link {% if 'nsf' in request.url.path %}active{% endif %}" href="/skus/nsf">
                         <i class="fas fa-certificate"></i> NSF Certification
                     </a>
+                    <a class="nav-link {% if request.url.path == '/validation' %}active{% endif %}" href="/validation">
+                        <i class="fas fa-shield-alt"></i> Validation Guide
+                    </a>
                     <a class="nav-link {% if request.url.path == '/export' %}active{% endif %}" href="/export">
                         <i class="fas fa-file-export"></i> Export Data
                     </a>

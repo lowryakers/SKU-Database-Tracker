@@ -11,6 +11,10 @@ from app.schemas.sku import (
     IngredientResponse,
     DocumentInfo,
     SharedWithInfo,
+    ValidationWarningSchema,
+    ValidationResult,
+    SKUWithValidation,
+    ValidateSKURequest,
 )
 
 __all__ = [
@@ -24,4 +28,8 @@ __all__ = [
     "IngredientResponse",
     "DocumentInfo",
     "SharedWithInfo",
+    "ValidationWarningSchema",
+    "ValidationResult",
+    "SKUWithValidation",
+    "ValidateSKURequest",
 ]

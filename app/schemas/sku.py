@@ -260,3 +260,40 @@ class ShareSKURequest(BaseModel):
     access_level: str = Field("view", description="Access level (view, edit)")
     message: Optional[str] = Field(None, description="Optional message to recipient")
     include_sensitive_data: bool = Field(False, description="Include internal notes and pricing")
+
+
+class ValidationWarningSchema(BaseModel):
+    """Schema for validation warnings."""
+
+    severity: str = Field(..., description="Severity level (critical, warning, info)")
+    category: str = Field(..., description="Warning category (banned_substance, nsf_requirement, data_quality)")
+    message: str = Field(..., description="Warning message")
+    field: Optional[str] = Field(None, description="Field that triggered the warning")
+    suggestion: Optional[str] = Field(None, description="Suggestion to resolve the issue")
+
+
+class ValidationResult(BaseModel):
+    """Schema for validation results."""
+
+    status: str = Field(..., description="Validation status (passed, warning, failed)")
+    total_warnings: int = Field(..., description="Total number of warnings")
+    critical_count: int = Field(..., description="Number of critical issues")
+    warning_count: int = Field(..., description="Number of warnings")
+    info_count: int = Field(..., description="Number of info messages")
+    nsf_ready: bool = Field(..., description="Is product ready for NSF certification?")
+    has_banned_substances: bool = Field(False, description="Were banned substances detected?")
+    message: str = Field(..., description="Summary message")
+    warnings: list[ValidationWarningSchema] = Field(default_factory=list, description="List of validation warnings")
+
+
+class SKUWithValidation(SKUResponse):
+    """SKU response with validation results."""
+
+    validation: ValidationResult = Field(..., description="Validation results")
+
+
+class ValidateSKURequest(BaseModel):
+    """Request to validate a SKU without creating it."""
+
+    sku_data: SKUCreate
+    ingredients: Optional[list[IngredientCreate]] = Field(None, description="List of ingredients to validate")

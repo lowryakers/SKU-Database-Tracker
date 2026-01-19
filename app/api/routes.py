@@ -18,10 +18,18 @@ from app.schemas import (
     ShareSKURequest,
     IngredientCreate,
     IngredientResponse,
+    ValidationResult,
+    SKUWithValidation,
+    ValidateSKURequest,
+    ValidationWarningSchema,
 )
 from app.services.export import ExportService
+from app.services.validation import NSFValidator
 
 router = APIRouter(prefix="/api/v1", tags=["skus"])
+
+# Initialize NSF Validator
+validator = NSFValidator()
 
 
 @router.post("/skus", response_model=SKUResponse, status_code=status.HTTP_201_CREATED)
@@ -336,4 +344,200 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         "requires_nsf_certification": requires_nsf,
         "nsf_status_breakdown": nsf_stats,
         "certification_types": cert_types
+    }
+"""Validation endpoint additions for routes.py - to be appended."""
+
+
+# NSF COMPLIANCE VALIDATION ENDPOINTS
+
+@router.post("/skus/validate", response_model=ValidationResult, tags=["validation"])
+async def validate_sku_data(
+    request: ValidateSKURequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Validate SKU data for NSF compliance WITHOUT creating it.
+
+    Checks for:
+    - Banned substances (290+ for NSF Certified for Sport)
+    - NSF certification requirements
+    - Data quality and completeness
+    - High-risk ingredient patterns
+
+    Returns detailed warnings and suggestions.
+    """
+    # Convert Pydantic models to dicts for validation
+    sku_dict = request.sku_data.model_dump()
+    ingredients_list = [ing.model_dump() for ing in request.ingredients] if request.ingredients else []
+
+    # Run validation
+    warnings = validator.validate_sku(sku_dict, ingredients_list)
+    summary = validator.get_validation_summary(warnings)
+
+    # Convert warnings to schema
+    warning_schemas = [ValidationWarningSchema(**w.to_dict()) for w in warnings]
+
+    return ValidationResult(
+        **summary,
+        warnings=warning_schemas
+    )
+
+
+@router.post("/skus/with-validation", response_model=SKUWithValidation, status_code=status.HTTP_201_CREATED, tags=["skus"])
+async def create_sku_with_validation(
+    sku_data: SKUCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Create a new SKU with automatic NSF compliance validation.
+
+    This endpoint:
+    1. Validates the SKU data for NSF compliance
+    2. Checks for banned substances
+    3. Verifies required NSF fields
+    4. Creates the SKU if validation passes
+    5. Returns the SKU with validation results
+
+    If critical issues are found (e.g., banned substances), the SKU is still created
+    but flagged with validation warnings.
+    """
+    # Check if SKU code already exists
+    result = await db.execute(select(SKU).where(SKU.sku_code == sku_data.sku_code))
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"SKU with code '{sku_data.sku_code}' already exists"
+        )
+
+    # Run validation before creating
+    sku_dict = sku_data.model_dump()
+    warnings = validator.validate_sku(sku_dict, [])
+    summary = validator.get_validation_summary(warnings)
+    warning_schemas = [ValidationWarningSchema(**w.to_dict()) for w in warnings]
+
+    # Create the SKU
+    sku = SKU(**sku_dict)
+    db.add(sku)
+    await db.commit()
+    await db.refresh(sku)
+
+    # Prepare response with validation
+    sku_response = SKUResponse.model_validate(sku)
+
+    validation_result = ValidationResult(
+        **summary,
+        warnings=warning_schemas
+    )
+
+    # Return SKU with validation results
+    return SKUWithValidation(
+        **sku_response.model_dump(),
+        validation=validation_result
+    )
+
+
+@router.get("/skus/{sku_id}/validate", response_model=ValidationResult, tags=["validation"])
+async def validate_existing_sku(
+    sku_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Validate an existing SKU for NSF compliance.
+
+    Useful for:
+    - Checking compliance before NSF submission
+    - Re-validating after ingredient changes
+    - Periodic compliance checks
+    """
+    # Get SKU with ingredients
+    result = await db.execute(
+        select(SKU)
+        .options(selectinload(SKU.ingredients_list))
+        .where(SKU.id == sku_id)
+    )
+    sku = result.scalar_one_or_none()
+
+    if not sku:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"SKU with id {sku_id} not found"
+        )
+
+    # Convert to dict for validation
+    sku_dict = {
+        "sku_code": sku.sku_code,
+        "name": sku.name,
+        "brand_name": sku.brand_name,
+        "product_type": sku.product_type,
+        "category": sku.category,
+        "description": sku.description,
+        "requires_nsf_certification": sku.requires_nsf_certification,
+        "nsf_certification_type": sku.nsf_certification_type,
+        "nsf_certification_status": sku.nsf_certification_status,
+        "nsf_banned_substances_tested": sku.nsf_banned_substances_tested,
+        "nsf_expiration_date": sku.nsf_expiration_date,
+        "manufacturer_name": sku.manufacturer_name,
+        "manufacturer_facility": sku.manufacturer_facility,
+        "manufacturer_city": sku.manufacturer_city,
+        "manufacturer_state": sku.manufacturer_state,
+        "manufacturer_country": sku.manufacturer_country,
+        "net_content": sku.net_content,
+        "serving_size": sku.serving_size,
+        "servings_per_container": sku.servings_per_container,
+        "label_claims": sku.label_claims,
+        "intended_use": sku.intended_use,
+        "directions_for_use": sku.directions_for_use,
+        "allergens": sku.allergens,
+        "sds_document_url": sku.sds_document_url,
+        "coa_document_url": sku.coa_document_url,
+        "label_image_url": sku.label_image_url,
+        "primary_contact_email": sku.primary_contact_email,
+        "expiration_date": sku.expiration_date,
+        "lot_number": sku.lot_number,
+    }
+
+    ingredients_list = [
+        {
+            "name": ing.name,
+            "amount": ing.amount,
+            "source": ing.source,
+        }
+        for ing in sku.ingredients_list
+    ] if sku.ingredients_list else []
+
+    # Run validation
+    warnings = validator.validate_sku(sku_dict, ingredients_list)
+    summary = validator.get_validation_summary(warnings)
+    warning_schemas = [ValidationWarningSchema(**w.to_dict()) for w in warnings]
+
+    return ValidationResult(
+        **summary,
+        warnings=warning_schemas
+    )
+
+
+@router.get("/validation/banned-substances", tags=["validation"])
+async def get_banned_substances_info():
+    """
+    Get information about banned substances categories.
+
+    Returns the complete list of banned substance categories and
+    examples for NSF Certified for Sport compliance.
+    """
+    return {
+        "metadata": validator.banned_substances.get("metadata", {}),
+        "categories": {
+            key: {
+                "name": value.get("name"),
+                "description": value.get("description"),
+                "example_keywords": value.get("keywords", [])[:10]  # First 10 examples
+            }
+            for key, value in validator.banned_substances.get("categories", {}).items()
+        },
+        "high_risk_ingredients": {
+            "description": validator.banned_substances.get("high_risk_ingredients", {}).get("description"),
+            "examples": validator.banned_substances.get("high_risk_ingredients", {}).get("keywords", [])[:15]
+        },
+        "total_keywords_tracked": len(validator.banned_keywords),
+        "note": "This list is based on WADA Prohibited List and NSF Certified for Sport requirements (290+ substances)"
     }

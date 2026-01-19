@@ -1,0 +1,94 @@
+<!-- Validation Alerts Component -->
+<!-- Include this in forms to show validation warnings -->
+
+{% if validation %}
+<div class="validation-results mb-4">
+    <!-- Overall Status -->
+    <div class="alert {% if validation.status == 'failed' %}alert-danger{% elif validation.status == 'warning' %}alert-warning{% else %}alert-success{% endif %}">
+        <div class="d-flex align-items-center">
+            <div class="flex-grow-1">
+                <h5 class="mb-2">
+                    {% if validation.has_banned_substances %}
+                        <i class="fas fa-exclamation-triangle"></i> CRITICAL: Banned Substances Detected!
+                    {% elif validation.status == 'failed' %}
+                        <i class="fas fa-times-circle"></i> Validation Failed
+                    {% elif validation.status == 'warning' %}
+                        <i class="fas fa-exclamation-circle"></i> Warnings Detected
+                    {% else %}
+                        <i class="fas fa-check-circle"></i> Validation Passed
+                    {% endif %}
+                </h5>
+                <p class="mb-0">{{ validation.message }}</p>
+            </div>
+            <div class="text-end">
+                <div>
+                    <span class="badge bg-danger">{{ validation.critical_count }} Critical</span>
+                    <span class="badge bg-warning text-dark">{{ validation.warning_count }} Warnings</span>
+                    <span class="badge bg-info">{{ validation.info_count }} Info</span>
+                </div>
+                <div class="mt-2">
+                    <strong>NSF Ready:</strong>
+                    {% if validation.nsf_ready %}
+                        <span class="badge bg-success">YES</span>
+                    {% else %}
+                        <span class="badge bg-danger">NO</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Warnings -->
+    {% if validation.warnings %}
+    <div class="card">
+        <div class="card-header bg-dark text-white">
+            <i class="fas fa-list"></i> Validation Details ({{ validation.total_warnings }} issues found)
+        </div>
+        <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+            {% for warning in validation.warnings %}
+            <div class="alert {% if warning.severity == 'critical' %}alert-danger{% elif warning.severity == 'warning' %}alert-warning{% else %}alert-info{% endif %} mb-2">
+                <div class="d-flex">
+                    <div style="min-width: 100px;">
+                        <span class="badge {% if warning.severity == 'critical' %}bg-danger{% elif warning.severity == 'warning' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                            {{ warning.severity|upper }}
+                        </span>
+                        <br>
+                        <small class="text-muted">{{ warning.category }}</small>
+                    </div>
+                    <div class="flex-grow-1">
+                        <strong>{{ warning.message }}</strong>
+                        {% if warning.field %}
+                        <br><small><i class="fas fa-arrow-right"></i> Field: <code>{{ warning.field }}</code></small>
+                        {% endif %}
+                        {% if warning.suggestion %}
+                        <div class="mt-2 p-2 bg-light rounded">
+                            <i class="fas fa-lightbulb text-warning"></i> <strong>Suggestion:</strong> {{ warning.suggestion }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<style>
+.validation-results .alert {
+    border-left: 4px solid;
+}
+.validation-results .alert-danger {
+    border-left-color: #dc3545;
+}
+.validation-results .alert-warning {
+    border-left-color: #ffc107;
+}
+.validation-results .alert-success {
+    border-left-color: #28a745;
+}
+.validation-results .alert-info {
+    border-left-color: #17a2b8;
+}
+</style>
