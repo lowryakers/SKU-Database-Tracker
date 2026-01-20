@@ -193,7 +193,8 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="brand_name" class="form-label">Brand Name</label>
-                        <input type="text" class="form-control" id="brand_name" name="brand_name">
+                        <input type="text" class="form-control" id="brand_name" name="brand_name" list="brandsList">
+                        <div class="form-text">Start typing to see previously used brands</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="product_type" class="form-label">Product Type</label>
@@ -211,11 +212,13 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="category" class="form-label">Category</label>
-                        <input type="text" class="form-control" id="category" name="category" placeholder="e.g., Sports Nutrition, Vitamins">
+                        <input type="text" class="form-control" id="category" name="category" list="categoriesList" placeholder="e.g., Sports Nutrition, Vitamins">
+                        <div class="form-text">Select from existing or create new</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="product_line" class="form-label">Product Line</label>
-                        <input type="text" class="form-control" id="product_line" name="product_line" placeholder="e.g., Premium Series">
+                        <input type="text" class="form-control" id="product_line" name="product_line" list="productLinesList" placeholder="e.g., Premium Series">
+                        <div class="form-text">Select from existing or create new</div>
                     </div>
                 </div>
 
@@ -308,7 +311,8 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="manufacturer_name" class="form-label">Manufacturer Name</label>
-                        <input type="text" class="form-control" id="manufacturer_name" name="manufacturer_name">
+                        <input type="text" class="form-control" id="manufacturer_name" name="manufacturer_name" list="manufacturersList">
+                        <div class="form-text">Select existing to auto-fill details</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="manufacturer_facility" class="form-label">Facility Name</label>
@@ -328,11 +332,11 @@
                     </div>
                     <div class="col-md-4 mb-3">
                         <label for="manufacturer_state" class="form-label">State/Province</label>
-                        <input type="text" class="form-control" id="manufacturer_state" name="manufacturer_state">
+                        <input type="text" class="form-control" id="manufacturer_state" name="manufacturer_state" list="statesList">
                     </div>
                     <div class="col-md-4 mb-3">
                         <label for="manufacturer_country" class="form-label">Country</label>
-                        <input type="text" class="form-control" id="manufacturer_country" name="manufacturer_country">
+                        <input type="text" class="form-control" id="manufacturer_country" name="manufacturer_country" list="countriesList">
                     </div>
                 </div>
 
@@ -368,7 +372,8 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="supplier_name" class="form-label">Supplier Name</label>
-                        <input type="text" class="form-control" id="supplier_name" name="supplier_name">
+                        <input type="text" class="form-control" id="supplier_name" name="supplier_name" list="suppliersList">
+                        <div class="form-text">Select existing to auto-fill contact details</div>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label for="supplier_contact" class="form-label">Contact Person</label>
@@ -408,16 +413,40 @@
                     </ul>
                 </div>
 
+                <!-- File Upload Option -->
+                <div class="card mb-4 border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-cloud-upload-alt"></i> Upload Ingredient Formulation
+                    </div>
+                    <div class="card-body">
+                        <p class="mb-2">Upload a CSV or Excel file containing your complete ingredient formulation.</p>
+                        <div class="alert alert-secondary mb-3">
+                            <strong>Expected columns:</strong> Ingredient Name, Unit, Amount<br>
+                            <strong>Supported formats:</strong> .csv, .xlsx, .xls<br>
+                            <strong>Formula validation:</strong> Amounts should sum to 1.0 (100%)
+                        </div>
+                        <input type="file" class="form-control mb-2" id="ingredientFormulationFile" accept=".csv,.xlsx,.xls">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="parseIngredientFile()">
+                            <i class="fas fa-upload"></i> Parse & Validate Formula
+                        </button>
+                        <div id="formulaValidation" class="mt-3"></div>
+                    </div>
+                </div>
+
+                <!-- Manual Entry -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Ingredient List</h5>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="addIngredient">
+                        <i class="fas fa-plus"></i> Add Ingredient Manually
+                    </button>
+                </div>
+
                 <div id="ingredientsList">
                     <!-- Ingredients will be added here dynamically -->
                 </div>
 
-                <button type="button" class="btn btn-outline-primary" id="addIngredient">
-                    <i class="fas fa-plus"></i> Add Ingredient
-                </button>
-
                 <div class="alert alert-info mt-3">
-                    <i class="fas fa-info-circle"></i> <strong>Tip:</strong> You can also upload ingredients in bulk via CSV after creating the SKU.
+                    <i class="fas fa-info-circle"></i> <strong>Tip:</strong> You can add ingredients manually or upload a complete formulation file.
                 </div>
             </div>
         </div>
@@ -629,6 +658,15 @@
             </div>
         </div>
 
+        <!-- Autocomplete Datalists -->
+        <datalist id="brandsList"></datalist>
+        <datalist id="categoriesList"></datalist>
+        <datalist id="productLinesList"></datalist>
+        <datalist id="manufacturersList"></datalist>
+        <datalist id="suppliersList"></datalist>
+        <datalist id="statesList"></datalist>
+        <datalist id="countriesList"></datalist>
+
         <!-- Navigation Buttons -->
         <div class="wizard-actions">
             <div>
@@ -723,7 +761,150 @@ $(document).ready(function() {
     $('#requires_nsf_certification').change(function() {
         $('#nsfFields').toggle(this.checked);
     });
+
+    // Load autocomplete data
+    loadAutocompleteData();
+
+    // Setup auto-population for manufacturers and suppliers
+    setupAutoPopulation();
 });
+
+// Load autocomplete data from API
+function loadAutocompleteData() {
+    // Load brands
+    fetch('/api/v1/autocomplete/brands')
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('brandsList');
+            data.brands.forEach(brand => {
+                const option = document.createElement('option');
+                option.value = brand;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error loading brands:', error));
+
+    // Load manufacturers
+    fetch('/api/v1/autocomplete/manufacturers')
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('manufacturersList');
+            window.manufacturersData = data.manufacturers; // Store for auto-fill
+            data.manufacturers.forEach(mfg => {
+                const option = document.createElement('option');
+                option.value = mfg.name;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error loading manufacturers:', error));
+
+    // Load suppliers
+    fetch('/api/v1/autocomplete/suppliers')
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('suppliersList');
+            window.suppliersData = data.suppliers; // Store for auto-fill
+            data.suppliers.forEach(supplier => {
+                const option = document.createElement('option');
+                option.value = supplier.name;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error loading suppliers:', error));
+
+    // Load categories
+    fetch('/api/v1/autocomplete/categories')
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('categoriesList');
+            data.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error loading categories:', error));
+
+    // Load product lines
+    fetch('/api/v1/autocomplete/product-lines')
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('productLinesList');
+            data.product_lines.forEach(line => {
+                const option = document.createElement('option');
+                option.value = line;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error loading product lines:', error));
+
+    // Load states
+    fetch('/api/v1/autocomplete/states')
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('statesList');
+            data.states.forEach(state => {
+                const option = document.createElement('option');
+                option.value = state;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error loading states:', error));
+
+    // Load countries
+    fetch('/api/v1/autocomplete/countries')
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('countriesList');
+            data.countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country;
+                datalist.appendChild(option);
+            });
+        })
+        .catch(error => console.error('Error loading countries:', error));
+}
+
+// Setup auto-population for manufacturer and supplier fields
+function setupAutoPopulation() {
+    // When manufacturer name changes, check if it matches a known manufacturer
+    $('#manufacturer_name').on('change input', function() {
+        const selectedName = $(this).val();
+        if (window.manufacturersData) {
+            const manufacturer = window.manufacturersData.find(m => m.name === selectedName);
+            if (manufacturer) {
+                $('#manufacturer_facility').val(manufacturer.facility || '');
+                $('#manufacturer_address').val(manufacturer.address || '');
+                $('#manufacturer_city').val(manufacturer.city || '');
+                $('#manufacturer_state').val(manufacturer.state || '');
+                $('#manufacturer_country').val(manufacturer.country || '');
+                $('#manufacturer_facility_id').val(manufacturer.facility_id || '');
+
+                // Visual feedback
+                $('#manufacturer_name').addClass('is-valid');
+                setTimeout(() => $('#manufacturer_name').removeClass('is-valid'), 2000);
+            }
+        }
+    });
+
+    // When supplier name changes, check if it matches a known supplier
+    $('#supplier_name').on('change input', function() {
+        const selectedName = $(this).val();
+        if (window.suppliersData) {
+            const supplier = window.suppliersData.find(s => s.name === selectedName);
+            if (supplier) {
+                $('#supplier_contact').val(supplier.contact || '');
+                $('#supplier_email').val(supplier.email || '');
+                $('#supplier_phone').val(supplier.phone || '');
+                $('#supplier_address').val(supplier.address || '');
+
+                // Visual feedback
+                $('#supplier_name').addClass('is-valid');
+                setTimeout(() => $('#supplier_name').removeClass('is-valid'), 2000);
+            }
+        }
+    });
+}
 
 // Navigation
 $('#nextBtn').click(function() {
@@ -1086,6 +1267,134 @@ function displayArtworkMatches(data) {
     html += '<a href="/skus">Go to SKU list</a> to complete the upload with manual mapping.';
     html += '</div>';
     preview.innerHTML = html;
+}
+
+// Parse Ingredient Formulation File
+function parseIngredientFile() {
+    const fileInput = document.getElementById('ingredientFormulationFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        alert('Please select a file first');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    fetch('/api/v1/ingredients/parse', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.errors && data.errors.length > 0) {
+            displayFormulaValidation(data);
+        } else {
+            displayFormulaValidation(data);
+            populateIngredientsList(data.ingredients);
+        }
+    })
+    .catch(error => {
+        alert('Error parsing ingredient file: ' + error.message);
+    });
+}
+
+function displayFormulaValidation(data) {
+    const validationDiv = document.getElementById('formulaValidation');
+    let html = '';
+
+    // Show columns found
+    if (data.columns_found && data.columns_found.length > 0) {
+        html += '<div class="alert alert-info">';
+        html += '<strong>Columns detected:</strong> ' + data.columns_found.join(', ');
+        html += '</div>';
+    }
+
+    // Formula validation
+    if (data.total_ingredients > 0) {
+        const sum = data.formula_sum || 0;
+        const isValid = data.formula_valid;
+
+        html += '<div class="alert alert-' + (isValid ? 'success' : 'warning') + '">';
+        html += '<h6><i class="fas fa-calculator"></i> Formula Validation</h6>';
+        html += `<p><strong>Total Ingredients:</strong> ${data.total_ingredients}</p>`;
+        html += `<p><strong>Formula Sum:</strong> ${sum.toFixed(7)} kg</p>`;
+
+        if (isValid) {
+            html += '<p class="mb-0"><i class="fas fa-check-circle"></i> <strong>Formula is valid!</strong> Sum equals 1.0 (100%)</p>';
+        } else {
+            const diff = (sum - 1.0).toFixed(7);
+            html += `<p class="mb-0"><i class="fas fa-exclamation-triangle"></i> <strong>Warning:</strong> Formula does not sum to 1.0`;
+            html += `<br>Difference: ${diff > 0 ? '+' : ''}${diff} kg</p>`;
+        }
+        html += '</div>';
+    }
+
+    // Show errors
+    if (data.errors && data.errors.length > 0) {
+        html += '<div class="alert alert-danger">';
+        html += '<strong>Errors:</strong><ul class="mb-0">';
+        data.errors.forEach(error => {
+            html += `<li>${error}</li>`;
+        });
+        html += '</ul></div>';
+    }
+
+    validationDiv.innerHTML = html;
+}
+
+function populateIngredientsList(ingredients) {
+    // Clear existing ingredients
+    document.getElementById('ingredientsList').innerHTML = '';
+    ingredientCount = 0;
+
+    // Add each ingredient
+    ingredients.forEach(ingredient => {
+        ingredientCount++;
+        const ingredientHtml = `
+            <div class="card mb-3 ingredient-card" data-ingredient="${ingredientCount}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Ingredient #${ingredientCount}</h6>
+                        <button type="button" class="btn btn-sm btn-danger remove-ingredient">
+                            <i class="fas fa-trash"></i> Remove
+                        </button>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-2">
+                            <label class="form-label">Ingredient Name</label>
+                            <input type="text" class="form-control" name="ingredients[${ingredientCount}][name]" value="${ingredient.name || ''}" required>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Amount</label>
+                            <input type="text" class="form-control" name="ingredients[${ingredientCount}][amount]" value="${ingredient.amount || ''}" placeholder="e.g., 0.0190827">
+                        </div>
+                        <div class="col-md-2 mb-2">
+                            <label class="form-label">Unit</label>
+                            <input type="text" class="form-control" name="ingredients[${ingredientCount}][unit]" value="${ingredient.unit || 'kg'}" placeholder="kg">
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label">Source/Form</label>
+                            <input type="text" class="form-control" name="ingredients[${ingredientCount}][source]" value="${ingredient.source || ''}" placeholder="e.g., Powder">
+                        </div>
+                    </div>
+                    ${ingredient.cas_number ? `
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">CAS Number</label>
+                            <input type="text" class="form-control" name="ingredients[${ingredientCount}][cas_number]" value="${ingredient.cas_number || ''}" placeholder="e.g., 50-81-7">
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        $('#ingredientsList').append(ingredientHtml);
+    });
+
+    // Scroll to ingredients list
+    document.getElementById('ingredientsList').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 </script>
 {% endblock %}

@@ -364,6 +364,142 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         "nsf_status_breakdown": nsf_stats,
         "certification_types": cert_types
     }
+
+
+# AUTOCOMPLETE ENDPOINTS
+
+@router.get("/autocomplete/brands", tags=["autocomplete"])
+async def get_brands_autocomplete(db: AsyncSession = Depends(get_db)):
+    """Get list of unique brand names for autocomplete."""
+    result = await db.execute(select(SKU.brand_name).distinct().where(SKU.brand_name.isnot(None)))
+    brands = [row[0] for row in result.all() if row[0]]
+    return {"brands": sorted(brands)}
+
+
+@router.get("/autocomplete/manufacturers", tags=["autocomplete"])
+async def get_manufacturers_autocomplete(db: AsyncSession = Depends(get_db)):
+    """
+    Get list of manufacturers with their full details for autocomplete.
+
+    Returns manufacturer names with associated facility information.
+    """
+    result = await db.execute(
+        select(
+            SKU.manufacturer_name,
+            SKU.manufacturer_facility,
+            SKU.manufacturer_address,
+            SKU.manufacturer_city,
+            SKU.manufacturer_state,
+            SKU.manufacturer_country,
+            SKU.manufacturer_facility_id
+        )
+        .distinct()
+        .where(SKU.manufacturer_name.isnot(None))
+    )
+
+    manufacturers = {}
+    for row in result.all():
+        if row[0]:  # manufacturer_name exists
+            # Use the most complete record for each manufacturer
+            if row[0] not in manufacturers or sum(1 for x in row[1:] if x) > sum(1 for x in manufacturers[row[0]].values() if x):
+                manufacturers[row[0]] = {
+                    "name": row[0],
+                    "facility": row[1],
+                    "address": row[2],
+                    "city": row[3],
+                    "state": row[4],
+                    "country": row[5],
+                    "facility_id": row[6]
+                }
+
+    return {"manufacturers": list(manufacturers.values())}
+
+
+@router.get("/autocomplete/suppliers", tags=["autocomplete"])
+async def get_suppliers_autocomplete(db: AsyncSession = Depends(get_db)):
+    """
+    Get list of suppliers with their full details for autocomplete.
+
+    Returns supplier names with associated contact information.
+    """
+    result = await db.execute(
+        select(
+            SKU.supplier_name,
+            SKU.supplier_contact,
+            SKU.supplier_email,
+            SKU.supplier_phone,
+            SKU.supplier_address
+        )
+        .distinct()
+        .where(SKU.supplier_name.isnot(None))
+    )
+
+    suppliers = {}
+    for row in result.all():
+        if row[0]:  # supplier_name exists
+            # Use the most complete record for each supplier
+            if row[0] not in suppliers or sum(1 for x in row[1:] if x) > sum(1 for x in suppliers[row[0]].values() if x):
+                suppliers[row[0]] = {
+                    "name": row[0],
+                    "contact": row[1],
+                    "email": row[2],
+                    "phone": row[3],
+                    "address": row[4]
+                }
+
+    return {"suppliers": list(suppliers.values())}
+
+
+@router.get("/autocomplete/categories", tags=["autocomplete"])
+async def get_categories_autocomplete(db: AsyncSession = Depends(get_db)):
+    """Get list of unique categories for autocomplete."""
+    result = await db.execute(select(SKU.category).distinct().where(SKU.category.isnot(None)))
+    categories = [row[0] for row in result.all() if row[0]]
+    return {"categories": sorted(categories)}
+
+
+@router.get("/autocomplete/product-lines", tags=["autocomplete"])
+async def get_product_lines_autocomplete(db: AsyncSession = Depends(get_db)):
+    """Get list of unique product lines for autocomplete."""
+    result = await db.execute(select(SKU.product_line).distinct().where(SKU.product_line.isnot(None)))
+    product_lines = [row[0] for row in result.all() if row[0]]
+    return {"product_lines": sorted(product_lines)}
+
+
+@router.get("/autocomplete/states", tags=["autocomplete"])
+async def get_states_list():
+    """Get list of US states and territories."""
+    states = [
+        "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+        "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+        "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+        "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+        "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
+        "New Hampshire", "New Jersey", "New Mexico", "New York",
+        "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon",
+        "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+        "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+        "West Virginia", "Wisconsin", "Wyoming", "Puerto Rico",
+        "US Virgin Islands", "Guam", "American Samoa", "Northern Mariana Islands"
+    ]
+    return {"states": states}
+
+
+@router.get("/autocomplete/countries", tags=["autocomplete"])
+async def get_countries_list():
+    """Get list of countries."""
+    countries = [
+        "United States", "Canada", "Mexico", "United Kingdom", "Germany",
+        "France", "Italy", "Spain", "China", "Japan", "South Korea",
+        "Australia", "New Zealand", "Brazil", "Argentina", "India",
+        "Netherlands", "Belgium", "Switzerland", "Austria", "Sweden",
+        "Norway", "Denmark", "Finland", "Poland", "Ireland", "Portugal",
+        "Greece", "Czech Republic", "Hungary", "Romania", "Turkey",
+        "Israel", "Saudi Arabia", "United Arab Emirates", "Singapore",
+        "Malaysia", "Thailand", "Vietnam", "Indonesia", "Philippines",
+        "South Africa", "Egypt", "Nigeria", "Kenya"
+    ]
+    return {"countries": sorted(countries)}
 """Validation endpoint additions for routes.py - to be appended."""
 
 
@@ -605,6 +741,187 @@ async def parse_bom_file_preview(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Error parsing BOM file: {str(e)}"
         )
+
+
+@router.post("/ingredients/parse", tags=["ingredients"])
+async def parse_ingredient_formulation(
+    file: UploadFile = File(...),
+):
+    """
+    Parse an ingredient formulation file (CSV or Excel) for a single SKU.
+
+    Supports: .csv, .xlsx, .xls
+
+    Expected columns:
+    - Ingredient Name/Name/Ingredient
+    - Unit/UOM
+    - Amount/Quantity
+
+    Returns parsed ingredients with formula validation (sum should equal 1.0).
+    """
+    filename = file.filename.lower()
+    if not filename.endswith(('.csv', '.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only CSV and Excel files (.csv, .xlsx, .xls) are supported"
+        )
+
+    try:
+        import csv
+        import io
+        try:
+            import openpyxl
+            OPENPYXL_AVAILABLE = True
+        except ImportError:
+            OPENPYXL_AVAILABLE = False
+
+        content = await file.read()
+        ingredients = []
+        columns_found = []
+        errors = []
+
+        # Parse file based on type
+        if filename.endswith(('.xlsx', '.xls')):
+            if not OPENPYXL_AVAILABLE:
+                return {
+                    'total_ingredients': 0,
+                    'ingredients': [],
+                    'columns_found': [],
+                    'errors': ['Excel file support requires openpyxl. Please convert to CSV or install openpyxl.'],
+                    'formula_sum': 0,
+                    'formula_valid': False
+                }
+
+            # Parse Excel file
+            workbook = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+            sheet = workbook.active
+
+            # Get headers from first row
+            headers = []
+            for cell in sheet[1]:
+                headers.append(str(cell.value) if cell.value else '')
+            columns_found = [h for h in headers if h]
+
+            # Parse data rows
+            for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                if not any(row):  # Skip empty rows
+                    continue
+
+                row_dict = {}
+                for idx, value in enumerate(row):
+                    if idx < len(headers) and headers[idx]:
+                        row_dict[headers[idx]] = str(value) if value is not None else ''
+
+                _process_ingredient_row(row_dict, ingredients, errors, row_idx)
+
+        else:
+            # Parse CSV file
+            try:
+                decoded = content.decode('utf-8-sig')
+            except UnicodeDecodeError:
+                try:
+                    decoded = content.decode('latin-1')
+                except UnicodeDecodeError:
+                    decoded = content.decode('utf-8', errors='ignore')
+
+            csv_reader = csv.DictReader(io.StringIO(decoded))
+            columns_found = list(csv_reader.fieldnames) if csv_reader.fieldnames else []
+
+            for row_idx, row in enumerate(csv_reader, start=2):
+                if not any(row.values()):  # Skip empty rows
+                    continue
+                _process_ingredient_row(row, ingredients, errors, row_idx)
+
+        # Calculate formula sum
+        formula_sum = 0.0
+        for ing in ingredients:
+            if ing.get('amount'):
+                try:
+                    amount_val = float(ing['amount'])
+                    formula_sum += amount_val
+                except (ValueError, TypeError):
+                    pass
+
+        # Check if formula is valid (sum equals 1.0 with tolerance)
+        formula_valid = abs(formula_sum - 1.0) < 0.0001  # Tolerance for floating point
+
+        if not ingredients and not errors:
+            errors.append(
+                f"No ingredients found. Columns detected: {', '.join(columns_found) if columns_found else 'None'}. "
+                f"Please ensure your file has columns for Ingredient Name, Unit, and Amount."
+            )
+
+        return {
+            'total_ingredients': len(ingredients),
+            'ingredients': ingredients,
+            'columns_found': columns_found,
+            'errors': errors,
+            'formula_sum': formula_sum,
+            'formula_valid': formula_valid
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error parsing ingredient file: {str(e)}"
+        )
+
+
+def _find_column(row: Dict, possible_names: List[str]) -> Optional[str]:
+    """Find a column value by trying multiple possible names (case-insensitive)."""
+    for name in possible_names:
+        # Try exact match first
+        if name in row and row[name]:
+            return row[name]
+        # Try case-insensitive match
+        for key in row.keys():
+            if key.lower() == name.lower() and row[key]:
+                return row[key]
+    return None
+
+
+def _process_ingredient_row(row: Dict, ingredients: List, errors: List, row_num: int):
+    """Process a single ingredient row and add to ingredients list if valid."""
+    # Try to extract ingredient name
+    ingredient_name = _find_column(row, [
+        'Ingredient', 'ingredient', 'Name', 'name', 'Ingredient Name',
+        'ingredient_name', 'IngredientName', 'Item', 'item',
+        'Component', 'component', 'Material', 'material', 'Description'
+    ])
+
+    # Try to extract amount
+    amount = _find_column(row, [
+        'Amount', 'amount', 'Quantity', 'quantity', 'Qty', 'qty',
+        'Weight', 'weight', 'Value', 'value', 'QTY', 'QUANTITY'
+    ])
+
+    # Try to extract unit
+    unit = _find_column(row, [
+        'Unit', 'unit', 'UOM', 'uom', 'Units', 'units',
+        'Unit of measurement', 'Unit_of_measurement', 'Measurement Unit'
+    ])
+
+    if ingredient_name:
+        # Optional: source/form
+        source = _find_column(row, [
+            'Source', 'source', 'Form', 'form', 'Type', 'type',
+            'Specification', 'specification', 'Grade', 'grade'
+        ])
+
+        # Optional: CAS number
+        cas_number = _find_column(row, [
+            'CAS', 'cas', 'CAS Number', 'CAS_Number', 'cas_number', 'CAS#'
+        ])
+
+        ingredients.append({
+            'name': ingredient_name.strip(),
+            'amount': amount.strip() if amount else '',
+            'unit': unit.strip() if unit else '',
+            'source': source.strip() if source else '',
+            'cas_number': cas_number.strip() if cas_number else ''
+        })
+    elif any(row.values()):  # Row has data but missing ingredient name
+        errors.append(f"Row {row_num}: Missing ingredient name")
 
 
 @router.post("/bulk/bom/upload", tags=["bulk-upload"])
