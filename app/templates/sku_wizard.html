@@ -112,6 +112,24 @@
     <h2><i class="fas fa-plus-circle"></i> Add New SKU - Step-by-Step Wizard</h2>
     <p class="text-muted">Complete each step to create a comprehensive SKU record. You can skip steps and complete them later.</p>
 
+    <!-- Bulk Upload Option -->
+    <div class="alert alert-info d-flex justify-content-between align-items-center" role="alert">
+        <div>
+            <i class="fas fa-cloud-upload-alt"></i> <strong>Need to add multiple SKUs?</strong> Use bulk upload to import BOMs and artwork for multiple products at once.
+        </div>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#bomUploadModal">
+                <i class="fas fa-file-csv"></i> Upload BOM CSV
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#artworkUploadModal">
+                <i class="fas fa-images"></i> Upload Artwork
+            </button>
+            <a href="/skus" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-list"></i> View All SKUs
+            </a>
+        </div>
+    </div>
+
     <!-- Progress Indicator -->
     <div class="wizard-progress d-flex mb-4">
         <div class="wizard-step active" data-step="1">
@@ -634,6 +652,54 @@
             </div>
         </div>
     </form>
+
+    <!-- BOM Upload Modal -->
+    <div class="modal fade" id="bomUploadModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bulk Upload BOM Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Upload CSV files containing Bills of Materials. The system will automatically match them to SKUs.</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> <strong>Note:</strong> You need to create SKUs first (with at least SKU code) before uploading BOMs. The system matches BOM entries to existing SKUs.
+                    </div>
+                    <input type="file" class="form-control" id="bomFiles" multiple accept=".csv">
+                    <div id="bomPreview" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="uploadBOMFiles()">Upload & Match</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Artwork Upload Modal -->
+    <div class="modal fade" id="artworkUploadModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Bulk Upload Artwork Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Upload artwork files (JPG, PNG, PDF). The system will auto-match them to SKUs based on filename.</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> <strong>Tip:</strong> Name your files with the SKU code (e.g., "SKU001_label.jpg") for automatic matching.
+                    </div>
+                    <input type="file" class="form-control" id="artworkFiles" multiple accept=".jpg,.jpeg,.png,.pdf">
+                    <div id="artworkPreview" class="mt-3"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="autoMatchArtwork()">Auto-Match</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
@@ -881,5 +947,107 @@ $('#skuWizardForm').submit(function(e) {
         }
     });
 });
+
+// Bulk Upload Functions
+function uploadBOMFiles() {
+    const fileInput = document.getElementById('bomFiles');
+    const files = fileInput.files;
+
+    if (files.length === 0) {
+        alert('Please select at least one CSV file');
+        return;
+    }
+
+    // Parse first file as preview
+    const formData = new FormData();
+    formData.append('file', files[0]);
+
+    fetch('/api/v1/bulk/bom/parse', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayBOMPreview(data);
+    })
+    .catch(error => {
+        alert('Error parsing BOM file: ' + error.message);
+    });
+}
+
+function displayBOMPreview(data) {
+    const preview = document.getElementById('bomPreview');
+    let html = `<h6>Preview: ${data.total_rows} BOM entries found</h6>`;
+    html += '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>SKU Code</th><th>Ingredient</th><th>Amount</th></tr></thead><tbody>';
+
+    data.data.slice(0, 10).forEach(row => {
+        html += `<tr>
+            <td>${row.sku_code}</td>
+            <td>${row.ingredient_name}</td>
+            <td>${row.amount || '-'}</td>
+        </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    if (data.total_rows > 10) {
+        html += `<p class="text-muted">Showing first 10 of ${data.total_rows} entries</p>`;
+    }
+    html += '<div class="alert alert-warning mt-2">';
+    html += '<i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Make sure the SKUs referenced in this BOM already exist in the system. ';
+    html += '<a href="/skus" target="_blank">View existing SKUs</a>';
+    html += '</div>';
+    preview.innerHTML = html;
+}
+
+function autoMatchArtwork() {
+    const fileInput = document.getElementById('artworkFiles');
+    const files = fileInput.files;
+
+    if (files.length === 0) {
+        alert('Please select at least one artwork file');
+        return;
+    }
+
+    const formData = new FormData();
+    for (let file of files) {
+        formData.append('files', file);
+    }
+
+    fetch('/api/v1/bulk/artwork/match', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        displayArtworkMatches(data);
+    })
+    .catch(error => {
+        alert('Error matching artwork files: ' + error.message);
+    });
+}
+
+function displayArtworkMatches(data) {
+    const preview = document.getElementById('artworkPreview');
+    let html = `<h6>Auto-Match Results (${data.total_files} files)</h6>`;
+    html += '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Filename</th><th>Suggested SKU</th><th>Confidence</th></tr></thead><tbody>';
+
+    data.matches.forEach(match => {
+        const badgeClass = match.confidence >= 80 ? 'success' : (match.confidence >= 50 ? 'warning' : 'danger');
+        html += `<tr>
+            <td>${match.filename}</td>
+            <td>${match.suggested_sku || '<em>No match</em>'}</td>
+            <td><span class="badge bg-${badgeClass}">${match.confidence}%</span></td>
+        </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    html += '<div class="alert alert-info mt-2">';
+    html += '<i class="fas fa-info-circle"></i> Files with low confidence scores may need manual SKU assignment. ';
+    html += '<a href="/skus">Go to SKU list</a> to complete the upload with manual mapping.';
+    html += '</div>';
+    preview.innerHTML = html;
+}
 </script>
 {% endblock %}
