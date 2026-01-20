@@ -1,5 +1,6 @@
 """Application configuration."""
 
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,7 +12,12 @@ class Settings(BaseSettings):
     debug: bool = False
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./sku_tracker.db"
+    # Use /tmp directory for SQLite on cloud platforms (Render, Railway, etc.)
+    # This directory is guaranteed to be writable
+    database_url: str = os.getenv(
+        "DATABASE_URL",
+        "sqlite+aiosqlite:////tmp/sku_tracker.db"
+    )
 
     # Security (add JWT secret, etc. when implementing auth)
     secret_key: str = "change-this-in-production"
