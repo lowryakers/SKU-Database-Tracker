@@ -565,31 +565,45 @@ async def get_banned_substances_info():
 # BULK UPLOAD ENDPOINTS
 
 @router.post("/bulk/bom/parse", tags=["bulk-upload"])
-async def parse_bom_csv_preview(
+async def parse_bom_file_preview(
     file: UploadFile = File(...),
 ):
     """
-    Parse a BOM CSV file and preview the data without saving.
+    Parse a BOM file (CSV or Excel) and preview the data without saving.
 
-    Returns the parsed BOM data with SKU mappings for review.
+    Supports: .csv, .xlsx, .xls
+
+    Returns the parsed BOM data with SKU mappings for review, plus diagnostic info.
     """
-    if not file.filename.endswith(('.csv', '.CSV')):
+    filename = file.filename.lower()
+    if not filename.endswith(('.csv', '.xlsx', '.xls')):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only CSV files are supported for BOM upload"
+            detail="Only CSV and Excel files (.csv, .xlsx, .xls) are supported for BOM upload"
         )
 
     try:
-        bom_data = await BulkUploadService.parse_bom_csv(file)
+        result = await BulkUploadService.parse_bom_file(file)
+
+        # Add success message
+        if result['errors']:
+            message = f"Parsed {result['total_rows']} BOM entries with {len(result['errors'])} warnings"
+        elif result['total_rows'] > 0:
+            message = f"Successfully parsed {result['total_rows']} BOM entries"
+        else:
+            message = "No BOM entries found - please check your file format"
+
         return {
-            "total_rows": len(bom_data),
-            "data": bom_data,
-            "message": f"Successfully parsed {len(bom_data)} BOM entries"
+            "total_rows": result['total_rows'],
+            "data": result['data'],
+            "columns_found": result['columns_found'],
+            "errors": result['errors'],
+            "message": message
         }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Error parsing BOM CSV: {str(e)}"
+            detail=f"Error parsing BOM file: {str(e)}"
         )
 
 

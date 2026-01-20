@@ -662,11 +662,16 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Upload CSV files containing Bills of Materials. The system will automatically match them to SKUs.</p>
+                    <p>Upload CSV or Excel files containing Bills of Materials. The system will automatically match them to SKUs.</p>
+                    <div class="alert alert-secondary">
+                        <strong>Supported formats:</strong> .csv, .xlsx, .xls<br>
+                        <strong>Required columns:</strong> SKU Code (or similar), Ingredient Name (or similar)<br>
+                        <strong>Optional columns:</strong> Amount, Source, Unit, CAS Number
+                    </div>
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> <strong>Note:</strong> You need to create SKUs first (with at least SKU code) before uploading BOMs. The system matches BOM entries to existing SKUs.
                     </div>
-                    <input type="file" class="form-control" id="bomFiles" multiple accept=".csv">
+                    <input type="file" class="form-control" id="bomFiles" multiple accept=".csv,.xlsx,.xls">
                     <div id="bomPreview" class="mt-3"></div>
                 </div>
                 <div class="modal-footer">
@@ -977,26 +982,59 @@ function uploadBOMFiles() {
 
 function displayBOMPreview(data) {
     const preview = document.getElementById('bomPreview');
-    let html = `<h6>Preview: ${data.total_rows} BOM entries found</h6>`;
-    html += '<div class="table-responsive"><table class="table table-sm">';
-    html += '<thead><tr><th>SKU Code</th><th>Ingredient</th><th>Amount</th></tr></thead><tbody>';
+    let html = '';
 
-    data.data.slice(0, 10).forEach(row => {
-        html += `<tr>
-            <td>${row.sku_code}</td>
-            <td>${row.ingredient_name}</td>
-            <td>${row.amount || '-'}</td>
-        </tr>`;
-    });
-
-    html += '</tbody></table></div>';
-    if (data.total_rows > 10) {
-        html += `<p class="text-muted">Showing first 10 of ${data.total_rows} entries</p>`;
+    // Show columns found
+    if (data.columns_found && data.columns_found.length > 0) {
+        html += '<div class="alert alert-info">';
+        html += '<strong>Columns detected:</strong> ' + data.columns_found.join(', ');
+        html += '</div>';
     }
-    html += '<div class="alert alert-warning mt-2">';
-    html += '<i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Make sure the SKUs referenced in this BOM already exist in the system. ';
-    html += '<a href="/skus" target="_blank">View existing SKUs</a>';
-    html += '</div>';
+
+    // Show errors/warnings
+    if (data.errors && data.errors.length > 0) {
+        html += '<div class="alert alert-warning">';
+        html += '<strong>Warnings:</strong><ul class="mb-0">';
+        data.errors.slice(0, 5).forEach(error => {
+            html += `<li>${error}</li>`;
+        });
+        if (data.errors.length > 5) {
+            html += `<li><em>... and ${data.errors.length - 5} more</em></li>`;
+        }
+        html += '</ul></div>';
+    }
+
+    html += `<h6>${data.message || `Preview: ${data.total_rows} BOM entries found`}</h6>`;
+
+    if (data.total_rows > 0) {
+        html += '<div class="table-responsive"><table class="table table-sm">';
+        html += '<thead><tr><th>Row</th><th>SKU Code</th><th>Ingredient</th><th>Amount</th></tr></thead><tbody>';
+
+        data.data.slice(0, 10).forEach(row => {
+            html += `<tr>
+                <td>${row.row_number || '-'}</td>
+                <td><strong>${row.sku_code}</strong></td>
+                <td>${row.ingredient_name}</td>
+                <td>${row.amount || '-'}</td>
+            </tr>`;
+        });
+
+        html += '</tbody></table></div>';
+        if (data.total_rows > 10) {
+            html += `<p class="text-muted">Showing first 10 of ${data.total_rows} entries</p>`;
+        }
+
+        html += '<div class="alert alert-warning mt-2">';
+        html += '<i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong> Make sure the SKUs referenced in this BOM already exist in the system. ';
+        html += '<a href="/skus" target="_blank">View existing SKUs</a>';
+        html += '</div>';
+    } else {
+        html += '<div class="alert alert-danger">';
+        html += '<i class="fas fa-exclamation-circle"></i> No BOM entries could be parsed. ';
+        html += 'Please check that your file has columns named "SKU Code" (or similar) and "Ingredient Name" (or similar).';
+        html += '</div>';
+    }
+
     preview.innerHTML = html;
 }
 

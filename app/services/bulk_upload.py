@@ -6,6 +6,11 @@ import os
 from typing import List, Dict, Tuple, Optional
 from fastapi import UploadFile
 import re
+try:
+    import openpyxl
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
 
 
 class BulkUploadService:
@@ -22,53 +27,166 @@ class BulkUploadService:
         os.makedirs(cls.ARTWORK_DIR, exist_ok=True)
 
     @classmethod
-    async def parse_bom_csv(cls, file: UploadFile) -> List[Dict]:
+    def _find_column(cls, row: Dict, possible_names: List[str]) -> Optional[str]:
+        """Find a column value by trying multiple possible names (case-insensitive)."""
+        for name in possible_names:
+            # Try exact match first
+            if name in row and row[name]:
+                return row[name]
+            # Try case-insensitive match
+            for key in row.keys():
+                if key.lower() == name.lower() and row[key]:
+                    return row[key]
+        return None
+
+    @classmethod
+    async def parse_bom_file(cls, file: UploadFile) -> Dict:
         """
-        Parse BOM CSV file and extract SKU-ingredient mappings.
+        Parse BOM file (CSV or Excel) and extract SKU-ingredient mappings.
 
-        Expected CSV format:
-        SKU_Code, Ingredient_Name, Amount, Source, ...
+        Expected columns (flexible names):
+        - SKU Code: SKU_Code, sku_code, SKU, sku, Product_Code, product_code, Item, Item Code
+        - Ingredient: Ingredient_Name, ingredient_name, Ingredient, ingredient, Name, name, Component, Part
+        - Amount: Amount, amount, Quantity, quantity, Qty
+        - Source: Source, source, Form, form, Type
+        - Unit: Unit, unit
+        - CAS: CAS, cas_number, CAS_Number, CAS Number
 
-        Returns list of BOM entries with auto-matching suggestions.
+        Returns dict with:
+        - total_rows: int
+        - data: List[Dict] of BOM entries
+        - columns_found: List[str] of actual column names
+        - errors: List[str] of any parsing errors
         """
         content = await file.read()
-        decoded = content.decode('utf-8-sig')  # Handle BOM in CSV
+        filename = file.filename.lower()
 
         bom_data = []
-        csv_reader = csv.DictReader(io.StringIO(decoded))
+        columns_found = []
+        errors = []
 
-        for row in csv_reader:
-            # Try to extract SKU code from various possible column names
-            sku_code = (
-                row.get('SKU_Code') or
-                row.get('sku_code') or
-                row.get('SKU') or
-                row.get('sku') or
-                row.get('Product_Code') or
-                row.get('product_code')
-            )
+        try:
+            # Determine file type and parse accordingly
+            if filename.endswith('.xlsx') or filename.endswith('.xls'):
+                if not OPENPYXL_AVAILABLE:
+                    return {
+                        'total_rows': 0,
+                        'data': [],
+                        'columns_found': [],
+                        'errors': ['Excel file support requires openpyxl. Please convert to CSV or install openpyxl.']
+                    }
 
-            ingredient_name = (
-                row.get('Ingredient_Name') or
-                row.get('ingredient_name') or
-                row.get('Ingredient') or
-                row.get('ingredient') or
-                row.get('Name') or
-                row.get('name')
-            )
+                # Parse Excel file
+                workbook = openpyxl.load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+                sheet = workbook.active
 
-            if sku_code and ingredient_name:
-                bom_data.append({
-                    'sku_code': sku_code.strip(),
-                    'ingredient_name': ingredient_name.strip(),
-                    'amount': row.get('Amount') or row.get('amount') or row.get('Quantity') or '',
-                    'source': row.get('Source') or row.get('source') or row.get('Form') or '',
-                    'unit': row.get('Unit') or row.get('unit') or '',
-                    'cas_number': row.get('CAS') or row.get('cas_number') or row.get('CAS_Number') or '',
-                    'raw_row': row  # Keep original data
-                })
+                # Get headers from first row
+                headers = []
+                for cell in sheet[1]:
+                    headers.append(str(cell.value) if cell.value else '')
+                columns_found = [h for h in headers if h]
 
-        return bom_data
+                # Parse data rows
+                for row_idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+                    if not any(row):  # Skip empty rows
+                        continue
+
+                    row_dict = {}
+                    for idx, value in enumerate(row):
+                        if idx < len(headers) and headers[idx]:
+                            row_dict[headers[idx]] = str(value) if value is not None else ''
+
+                    cls._process_bom_row(row_dict, bom_data, errors, row_idx)
+
+            else:
+                # Parse CSV file
+                try:
+                    decoded = content.decode('utf-8-sig')
+                except UnicodeDecodeError:
+                    try:
+                        decoded = content.decode('latin-1')
+                    except UnicodeDecodeError:
+                        decoded = content.decode('utf-8', errors='ignore')
+
+                csv_reader = csv.DictReader(io.StringIO(decoded))
+                columns_found = list(csv_reader.fieldnames) if csv_reader.fieldnames else []
+
+                for row_idx, row in enumerate(csv_reader, start=2):
+                    if not any(row.values()):  # Skip empty rows
+                        continue
+                    cls._process_bom_row(row, bom_data, errors, row_idx)
+
+            # Add helpful error message if no data was parsed
+            if not bom_data and not errors:
+                errors.append(
+                    f"No valid BOM entries found. Columns detected: {', '.join(columns_found) if columns_found else 'None'}. "
+                    f"Please ensure your file has columns for SKU Code and Ingredient Name."
+                )
+
+        except Exception as e:
+            errors.append(f"Error parsing file: {str(e)}")
+
+        return {
+            'total_rows': len(bom_data),
+            'data': bom_data,
+            'columns_found': columns_found,
+            'errors': errors
+        }
+
+    @classmethod
+    def _process_bom_row(cls, row: Dict, bom_data: List, errors: List, row_num: int):
+        """Process a single BOM row and add to bom_data if valid."""
+        # Try to extract SKU code from various possible column names
+        sku_code = cls._find_column(row, [
+            'SKU_Code', 'sku_code', 'SKU', 'sku', 'Product_Code', 'product_code',
+            'Item', 'Item Code', 'ItemCode', 'item_code', 'Product', 'product'
+        ])
+
+        ingredient_name = cls._find_column(row, [
+            'Ingredient_Name', 'ingredient_name', 'Ingredient', 'ingredient',
+            'Name', 'name', 'Component', 'component', 'Part', 'part',
+            'Material', 'material', 'Item Name', 'Description'
+        ])
+
+        if sku_code and ingredient_name:
+            amount = cls._find_column(row, [
+                'Amount', 'amount', 'Quantity', 'quantity', 'Qty', 'qty', 'Weight', 'weight'
+            ]) or ''
+
+            source = cls._find_column(row, [
+                'Source', 'source', 'Form', 'form', 'Type', 'type', 'Origin', 'origin'
+            ]) or ''
+
+            unit = cls._find_column(row, [
+                'Unit', 'unit', 'UOM', 'uom', 'Units', 'units'
+            ]) or ''
+
+            cas_number = cls._find_column(row, [
+                'CAS', 'cas_number', 'CAS_Number', 'CAS Number', 'CAS#', 'cas'
+            ]) or ''
+
+            bom_data.append({
+                'sku_code': sku_code.strip(),
+                'ingredient_name': ingredient_name.strip(),
+                'amount': amount.strip() if amount else '',
+                'source': source.strip() if source else '',
+                'unit': unit.strip() if unit else '',
+                'cas_number': cas_number.strip() if cas_number else '',
+                'row_number': row_num
+            })
+        elif sku_code or ingredient_name:
+            # One column found but not the other
+            missing = 'Ingredient Name' if sku_code else 'SKU Code'
+            errors.append(f"Row {row_num}: Missing {missing}")
+
+    @classmethod
+    async def parse_bom_csv(cls, file: UploadFile) -> List[Dict]:
+        """
+        Legacy method for backward compatibility.
+        Use parse_bom_file() for better error handling.
+        """
+        result = await cls.parse_bom_file(file)
+        return result['data']
 
     @classmethod
     async def save_bom_file(cls, file: UploadFile, sku_code: str) -> str:
