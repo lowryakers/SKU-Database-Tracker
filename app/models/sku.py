@@ -111,6 +111,24 @@ class SKU(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     requires_nsf_certification: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
+    # Tagging and grouping
+    tags: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Format: ["sports-nutrition", "pre-workout", "nsf-certified"]
+
+    product_line: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # e.g., "Premium Series", "Budget Line", "Professional Grade"
+
+    # File attachments
+    bom_file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)  # Bill of Materials
+    artwork_file_path: Mapped[str | None] = mapped_column(String(500), nullable=True)  # Product artwork
+
+    # Completion tracking for multi-step wizard
+    completion_status: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # Format: {"basic_info": "complete", "manufacturing": "incomplete", "nsf": "skipped"}
+
+    completion_percentage: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # 0-100 percentage of completed fields
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

@@ -55,7 +55,9 @@ async def dashboard(request: Request, db: AsyncSession = Depends(get_db)):
 async def list_skus_page(
     request: Request,
     category: str = None,
+    product_line: str = None,
     nsf_status: str = None,
+    search: str = None,
     db: AsyncSession = Depends(get_db)
 ):
     """SKU list page with filtering."""
@@ -63,15 +65,24 @@ async def list_skus_page(
 
     if category:
         query = query.where(SKU.category == category)
+    if product_line:
+        query = query.where(SKU.product_line == product_line)
     if nsf_status:
         query = query.where(SKU.nsf_certification_status == nsf_status)
+    if search:
+        query = query.where(
+            (SKU.sku_code.ilike(f"%{search}%")) |
+            (SKU.name.ilike(f"%{search}%"))
+        )
 
     result = await db.execute(query)
     skus = result.scalars().all()
 
-    # Get unique categories for filter
+    # Get unique values for filters
     all_skus = await db.execute(select(SKU))
-    categories = set(sku.category for sku in all_skus.scalars().all() if sku.category)
+    all_skus_list = all_skus.scalars().all()
+    categories = set(sku.category for sku in all_skus_list if sku.category)
+    product_lines = set(sku.product_line for sku in all_skus_list if sku.product_line)
 
     return templates.TemplateResponse(
         "sku_list.html",
@@ -79,7 +90,9 @@ async def list_skus_page(
             "request": request,
             "skus": skus,
             "categories": sorted(categories),
+            "product_lines": sorted(product_lines),
             "selected_category": category,
+            "selected_product_line": product_line,
             "selected_nsf_status": nsf_status
         }
     )
@@ -87,10 +100,10 @@ async def list_skus_page(
 
 @router.get("/skus/new", response_class=HTMLResponse)
 async def new_sku_page(request: Request):
-    """Page for creating a new SKU."""
+    """Step-by-step wizard for creating a new SKU."""
     return templates.TemplateResponse(
-        "sku_form.html",
-        {"request": request, "sku": None, "action": "Create"}
+        "sku_wizard.html",
+        {"request": request}
     )
 
 

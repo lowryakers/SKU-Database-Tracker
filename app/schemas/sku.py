@@ -144,6 +144,18 @@ class SKUBase(BaseModel):
     is_active: bool = Field(True, description="Is product active?")
     requires_nsf_certification: bool = Field(False, description="Does this require NSF certification?")
 
+    # Tagging and grouping
+    tags: Optional[list[str]] = Field(None, description="Tags for categorization (e.g., ['sports-nutrition', 'pre-workout'])")
+    product_line: Optional[str] = Field(None, max_length=255, description="Product line (e.g., 'Premium Series')")
+
+    # File attachments
+    bom_file_path: Optional[str] = Field(None, max_length=500, description="Bill of Materials file path")
+    artwork_file_path: Optional[str] = Field(None, max_length=500, description="Product artwork file path")
+
+    # Completion tracking
+    completion_status: Optional[dict] = Field(None, description="Completion status by section")
+    completion_percentage: int = Field(0, ge=0, le=100, description="Overall completion percentage")
+
 
 class SKUCreate(SKUBase):
     """Schema for creating a new SKU."""
@@ -206,6 +218,12 @@ class SKUUpdate(BaseModel):
     internal_notes: Optional[str] = None
     is_active: Optional[bool] = None
     requires_nsf_certification: Optional[bool] = None
+    tags: Optional[list[str]] = None
+    product_line: Optional[str] = None
+    bom_file_path: Optional[str] = None
+    artwork_file_path: Optional[str] = None
+    completion_status: Optional[dict] = None
+    completion_percentage: Optional[int] = Field(None, ge=0, le=100)
 
 
 class SKUResponse(SKUBase):
@@ -235,6 +253,9 @@ class SKUSummary(BaseModel):
     nsf_certification_type: Optional[str] = None
     requires_nsf_certification: bool
     is_active: bool
+    tags: Optional[dict] = None
+    product_line: Optional[str] = None
+    completion_percentage: int = 0
     created_at: datetime
     updated_at: datetime
 
@@ -249,6 +270,8 @@ class SKUExportRequest(BaseModel):
     include_ingredients: bool = Field(True, description="Include ingredient details")
     include_internal_notes: bool = Field(False, description="Include internal notes")
     certification_type: Optional[str] = Field(None, description="Filter by certification type")
+    tags: Optional[list[str]] = Field(None, description="Filter by tags")
+    product_line: Optional[str] = Field(None, description="Filter by product line")
 
 
 class ShareSKURequest(BaseModel):

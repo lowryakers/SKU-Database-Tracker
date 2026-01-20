@@ -1,11 +1,13 @@
 """API routes for SKU management with NSF certification support."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from typing import List, Dict, Optional
 import io
+import json
 
 from app.database.connection import get_db
 from app.models.sku import SKU, Ingredient
@@ -25,6 +27,7 @@ from app.schemas import (
 )
 from app.services.export import ExportService
 from app.services.validation import NSFValidator
+from app.services.bulk_upload import BulkUploadService
 
 router = APIRouter(prefix="/api/v1", tags=["skus"])
 
@@ -222,6 +225,12 @@ async def export_skus_excel(
         query = query.where(SKU.id.in_(export_request.sku_ids))
     if export_request.certification_type:
         query = query.where(SKU.nsf_certification_type == export_request.certification_type)
+    if export_request.product_line:
+        query = query.where(SKU.product_line == export_request.product_line)
+    if export_request.tags:
+        # Filter by any of the provided tags
+        for tag in export_request.tags:
+            query = query.where(SKU.tags.contains([tag]))
 
     result = await db.execute(query)
     skus = result.scalars().all()
@@ -257,6 +266,11 @@ async def export_skus_pdf(
         query = query.where(SKU.id.in_(export_request.sku_ids))
     if export_request.certification_type:
         query = query.where(SKU.nsf_certification_type == export_request.certification_type)
+    if export_request.product_line:
+        query = query.where(SKU.product_line == export_request.product_line)
+    if export_request.tags:
+        for tag in export_request.tags:
+            query = query.where(SKU.tags.contains([tag]))
 
     result = await db.execute(query)
     skus = result.scalars().all()
@@ -292,6 +306,11 @@ async def export_skus_csv(
         query = query.where(SKU.id.in_(export_request.sku_ids))
     if export_request.certification_type:
         query = query.where(SKU.nsf_certification_type == export_request.certification_type)
+    if export_request.product_line:
+        query = query.where(SKU.product_line == export_request.product_line)
+    if export_request.tags:
+        for tag in export_request.tags:
+            query = query.where(SKU.tags.contains([tag]))
 
     result = await db.execute(query)
     skus = result.scalars().all()
@@ -540,4 +559,176 @@ async def get_banned_substances_info():
         },
         "total_keywords_tracked": len(validator.banned_keywords),
         "note": "This list is based on WADA Prohibited List and NSF Certified for Sport requirements (290+ substances)"
+    }
+
+
+# BULK UPLOAD ENDPOINTS
+
+@router.post("/bulk/bom/parse", tags=["bulk-upload"])
+async def parse_bom_csv_preview(
+    file: UploadFile = File(...),
+):
+    """
+    Parse a BOM CSV file and preview the data without saving.
+
+    Returns the parsed BOM data with SKU mappings for review.
+    """
+    if not file.filename.endswith(('.csv', '.CSV')):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only CSV files are supported for BOM upload"
+        )
+
+    try:
+        bom_data = await BulkUploadService.parse_bom_csv(file)
+        return {
+            "total_rows": len(bom_data),
+            "data": bom_data,
+            "message": f"Successfully parsed {len(bom_data)} BOM entries"
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error parsing BOM CSV: {str(e)}"
+        )
+
+
+@router.post("/bulk/bom/upload", tags=["bulk-upload"])
+async def bulk_upload_bom_files(
+    files: List[UploadFile] = File(...),
+    sku_mappings: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Bulk upload BOM files and associate them with SKUs.
+
+    sku_mappings should be a JSON string: {"filename1.csv": "SKU001", "filename2.csv": "SKU002"}
+    """
+    try:
+        mappings = json.loads(sku_mappings)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sku_mappings JSON format"
+        )
+
+    # Upload files
+    results = await BulkUploadService.bulk_upload_boms(files, mappings)
+
+    # Update SKU records with file paths and ingredients
+    for result in results:
+        if result['status'] == 'success':
+            sku_code = result['sku_code']
+            filepath = result['filepath']
+
+            # Find SKU in database
+            db_result = await db.execute(select(SKU).where(SKU.sku_code == sku_code))
+            sku = db_result.scalar_one_or_none()
+
+            if sku:
+                # Update BOM file path
+                sku.bom_file_path = filepath
+
+                # Add ingredients from BOM
+                for ing_data in result.get('ingredients', []):
+                    if ing_data['sku_code'] == sku_code:
+                        ingredient = Ingredient(
+                            sku_id=sku.id,
+                            name=ing_data['ingredient_name'],
+                            amount=ing_data.get('amount'),
+                            source=ing_data.get('source'),
+                            unit=ing_data.get('unit'),
+                            cas_number=ing_data.get('cas_number')
+                        )
+                        db.add(ingredient)
+
+                await db.commit()
+                result['sku_id'] = sku.id
+                result['db_updated'] = True
+            else:
+                result['db_updated'] = False
+                result['warning'] = f"SKU code '{sku_code}' not found in database"
+
+    return {
+        "total_files": len(files),
+        "results": results
+    }
+
+
+@router.post("/bulk/artwork/match", tags=["bulk-upload"])
+async def auto_match_artwork_files(
+    files: List[UploadFile] = File(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Auto-match artwork files to SKUs based on filename patterns.
+
+    Returns suggested matches for user approval.
+    """
+    # Get all SKU codes from database
+    result = await db.execute(select(SKU.sku_code))
+    available_skus = [row[0] for row in result.all()]
+
+    # Auto-match files
+    matches = BulkUploadService.match_files_to_skus(files, available_skus)
+
+    return {
+        "total_files": len(files),
+        "matches": [
+            {
+                "filename": m['filename'],
+                "suggested_sku": m['suggested_sku'],
+                "confidence": m['confidence']
+            }
+            for m in matches
+        ],
+        "message": "Review the matches and confirm to proceed with upload"
+    }
+
+
+@router.post("/bulk/artwork/upload", tags=["bulk-upload"])
+async def bulk_upload_artwork_files(
+    files: List[UploadFile] = File(...),
+    sku_mappings: str = Form(...),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Bulk upload artwork files and associate them with SKUs.
+
+    sku_mappings should be a JSON string: {"filename1.jpg": "SKU001", "filename2.png": "SKU002"}
+    """
+    try:
+        mappings = json.loads(sku_mappings)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid sku_mappings JSON format"
+        )
+
+    # Upload files
+    results = await BulkUploadService.bulk_upload_artworks(files, mappings)
+
+    # Update SKU records with file paths
+    for result in results:
+        if result['status'] == 'success':
+            sku_code = result['sku_code']
+            filepath = result['filepath']
+
+            # Find SKU in database
+            db_result = await db.execute(select(SKU).where(SKU.sku_code == sku_code))
+            sku = db_result.scalar_one_or_none()
+
+            if sku:
+                # Update artwork file path
+                sku.artwork_file_path = filepath
+                await db.commit()
+                result['sku_id'] = sku.id
+                result['db_updated'] = True
+            else:
+                result['db_updated'] = False
+                result['warning'] = f"SKU code '{sku_code}' not found in database"
+
+    return {
+        "total_files": len(files),
+        "results": results
     }

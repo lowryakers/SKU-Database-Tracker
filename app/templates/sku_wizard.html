@@ -1,0 +1,885 @@
+{% extends "base.html" %}
+
+{% block title %}Add New SKU - Step-by-Step Wizard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .wizard-progress {
+        margin-bottom: 30px;
+    }
+    .wizard-step {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        position: relative;
+    }
+    .wizard-step::before {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #dee2e6;
+        z-index: -1;
+    }
+    .wizard-step:first-child::before {
+        left: 50%;
+    }
+    .wizard-step:last-child::before {
+        right: 50%;
+    }
+    .wizard-step .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #dee2e6;
+        color: #6c757d;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 8px;
+        position: relative;
+        z-index: 1;
+    }
+    .wizard-step.active .step-number {
+        background: var(--primary-color);
+        color: white;
+    }
+    .wizard-step.completed .step-number {
+        background: var(--success-color);
+        color: white;
+    }
+    .wizard-step.completed .step-number::after {
+        content: '✓';
+    }
+    .wizard-step.skipped .step-number {
+        background: var(--warning-color);
+        color: white;
+    }
+    .wizard-step .step-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    .wizard-step.active .step-label {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+    .step-content {
+        display: none;
+    }
+    .step-content.active {
+        display: block;
+    }
+    .preparation-box {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    .preparation-box h6 {
+        color: #856404;
+        margin-bottom: 10px;
+    }
+    .preparation-box ul {
+        margin-bottom: 0;
+        color: #856404;
+    }
+    .wizard-actions {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+    }
+    .form-section {
+        background: white;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    .required-field::after {
+        content: " *";
+        color: red;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h2><i class="fas fa-plus-circle"></i> Add New SKU - Step-by-Step Wizard</h2>
+    <p class="text-muted">Complete each step to create a comprehensive SKU record. You can skip steps and complete them later.</p>
+
+    <!-- Progress Indicator -->
+    <div class="wizard-progress d-flex mb-4">
+        <div class="wizard-step active" data-step="1">
+            <div class="step-number">1</div>
+            <div class="step-label">Basic Info</div>
+        </div>
+        <div class="wizard-step" data-step="2">
+            <div class="step-number">2</div>
+            <div class="step-label">Product Details</div>
+        </div>
+        <div class="wizard-step" data-step="3">
+            <div class="step-number">3</div>
+            <div class="step-label">Manufacturing</div>
+        </div>
+        <div class="wizard-step" data-step="4">
+            <div class="step-number">4</div>
+            <div class="step-label">Ingredients</div>
+        </div>
+        <div class="wizard-step" data-step="5">
+            <div class="step-number">5</div>
+            <div class="step-label">NSF Certification</div>
+        </div>
+        <div class="wizard-step" data-step="6">
+            <div class="step-number">6</div>
+            <div class="step-label">Documents</div>
+        </div>
+        <div class="wizard-step" data-step="7">
+            <div class="step-number">7</div>
+            <div class="step-label">Review</div>
+        </div>
+    </div>
+
+    <form id="skuWizardForm" action="/api/skus" method="POST" enctype="multipart/form-data">
+
+        <!-- Step 1: Basic Information -->
+        <div class="step-content active" data-step="1">
+            <div class="form-section">
+                <h4><i class="fas fa-info-circle"></i> Step 1: Basic Information</h4>
+
+                <div class="preparation-box">
+                    <h6><i class="fas fa-lightbulb"></i> What you'll need:</h6>
+                    <ul>
+                        <li>Unique SKU code/identifier</li>
+                        <li>Product name and brand name</li>
+                        <li>Basic product description</li>
+                    </ul>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="sku_code" class="form-label required-field">SKU Code</label>
+                        <input type="text" class="form-control" id="sku_code" name="sku_code" required>
+                        <div class="form-text">Unique identifier for this product</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="name" class="form-label required-field">Product Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="brand_name" class="form-label">Brand Name</label>
+                        <input type="text" class="form-control" id="brand_name" name="brand_name">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="product_type" class="form-label">Product Type</label>
+                        <select class="form-select" id="product_type" name="product_type">
+                            <option value="">Select type...</option>
+                            <option value="Dietary Supplement">Dietary Supplement</option>
+                            <option value="Food">Food</option>
+                            <option value="Beverage">Beverage</option>
+                            <option value="Cosmetic">Cosmetic</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="category" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="category" name="category" placeholder="e.g., Sports Nutrition, Vitamins">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="product_line" class="form-label">Product Line</label>
+                        <input type="text" class="form-control" id="product_line" name="product_line" placeholder="e.g., Premium Series">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="tags" class="form-label">Tags (comma-separated)</label>
+                    <input type="text" class="form-control" id="tags" name="tags" placeholder="e.g., sports-nutrition, pre-workout, vegan">
+                    <div class="form-text">Add tags to help organize and filter your products</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Product Details -->
+        <div class="step-content" data-step="2">
+            <div class="form-section">
+                <h4><i class="fas fa-box"></i> Step 2: Product Details</h4>
+
+                <div class="preparation-box">
+                    <h6><i class="fas fa-lightbulb"></i> What you'll need:</h6>
+                    <ul>
+                        <li>Current inventory quantity</li>
+                        <li>Product size/net content</li>
+                        <li>Serving information</li>
+                        <li>Pricing information (optional)</li>
+                    </ul>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="quantity" class="form-label">Quantity in Stock</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" value="0" min="0">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="unit_price" class="form-label">Unit Price ($)</label>
+                        <input type="number" class="form-control" id="unit_price" name="unit_price" step="0.01" min="0">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="storage_location" class="form-label">Storage Location</label>
+                        <input type="text" class="form-control" id="storage_location" name="storage_location" placeholder="e.g., Warehouse A, Shelf 12">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="net_content" class="form-label">Net Content</label>
+                        <input type="text" class="form-control" id="net_content" name="net_content" placeholder="e.g., 500mg, 60 capsules">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="serving_size" class="form-label">Serving Size</label>
+                        <input type="text" class="form-control" id="serving_size" name="serving_size" placeholder="e.g., 2 capsules">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="servings_per_container" class="form-label">Servings per Container</label>
+                        <input type="number" class="form-control" id="servings_per_container" name="servings_per_container" min="1">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="allergens" class="form-label">Allergens</label>
+                    <textarea class="form-control" id="allergens" name="allergens" rows="2" placeholder="List any allergens present or manufactured in same facility"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="formulation_details" class="form-label">Formulation Details</label>
+                    <textarea class="form-control" id="formulation_details" name="formulation_details" rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Manufacturing Information -->
+        <div class="step-content" data-step="3">
+            <div class="form-section">
+                <h4><i class="fas fa-industry"></i> Step 3: Manufacturing Information</h4>
+
+                <div class="preparation-box">
+                    <h6><i class="fas fa-lightbulb"></i> What you'll need:</h6>
+                    <ul>
+                        <li>Manufacturer name and facility information</li>
+                        <li>Complete facility address</li>
+                        <li>Facility ID (if available)</li>
+                        <li>Supplier contact information</li>
+                    </ul>
+                </div>
+
+                <h5 class="mt-4">Manufacturer Details</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="manufacturer_name" class="form-label">Manufacturer Name</label>
+                        <input type="text" class="form-control" id="manufacturer_name" name="manufacturer_name">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="manufacturer_facility" class="form-label">Facility Name</label>
+                        <input type="text" class="form-control" id="manufacturer_facility" name="manufacturer_facility">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="manufacturer_address" class="form-label">Facility Address</label>
+                    <input type="text" class="form-control" id="manufacturer_address" name="manufacturer_address">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="manufacturer_city" class="form-label">City</label>
+                        <input type="text" class="form-control" id="manufacturer_city" name="manufacturer_city">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="manufacturer_state" class="form-label">State/Province</label>
+                        <input type="text" class="form-control" id="manufacturer_state" name="manufacturer_state">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="manufacturer_country" class="form-label">Country</label>
+                        <input type="text" class="form-control" id="manufacturer_country" name="manufacturer_country">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="manufacturer_facility_id" class="form-label">Facility ID/Registration Number</label>
+                    <input type="text" class="form-control" id="manufacturer_facility_id" name="manufacturer_facility_id">
+                </div>
+
+                <h5 class="mt-4">Batch/Lot Information</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="lot_number" class="form-label">Lot Number</label>
+                        <input type="text" class="form-control" id="lot_number" name="lot_number">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="batch_number" class="form-label">Batch Number</label>
+                        <input type="text" class="form-control" id="batch_number" name="batch_number">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="manufacturing_date" class="form-label">Manufacturing Date</label>
+                        <input type="date" class="form-control" id="manufacturing_date" name="manufacturing_date">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="expiration_date" class="form-label">Expiration Date</label>
+                        <input type="date" class="form-control" id="expiration_date" name="expiration_date">
+                    </div>
+                </div>
+
+                <h5 class="mt-4">Supplier Information</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="supplier_name" class="form-label">Supplier Name</label>
+                        <input type="text" class="form-control" id="supplier_name" name="supplier_name">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="supplier_contact" class="form-label">Contact Person</label>
+                        <input type="text" class="form-control" id="supplier_contact" name="supplier_contact">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="supplier_email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="supplier_email" name="supplier_email">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="supplier_phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="supplier_phone" name="supplier_phone">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="supplier_address" class="form-label">Address</label>
+                        <input type="text" class="form-control" id="supplier_address" name="supplier_address">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Ingredients -->
+        <div class="step-content" data-step="4">
+            <div class="form-section">
+                <h4><i class="fas fa-flask"></i> Step 4: Ingredients</h4>
+
+                <div class="preparation-box">
+                    <h6><i class="fas fa-lightbulb"></i> What you'll need:</h6>
+                    <ul>
+                        <li>Complete ingredient list with amounts</li>
+                        <li>Source/form of each ingredient</li>
+                        <li>Supplier information for ingredients</li>
+                        <li>CAS numbers (if available)</li>
+                    </ul>
+                </div>
+
+                <div id="ingredientsList">
+                    <!-- Ingredients will be added here dynamically -->
+                </div>
+
+                <button type="button" class="btn btn-outline-primary" id="addIngredient">
+                    <i class="fas fa-plus"></i> Add Ingredient
+                </button>
+
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i> <strong>Tip:</strong> You can also upload ingredients in bulk via CSV after creating the SKU.
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: NSF Certification -->
+        <div class="step-content" data-step="5">
+            <div class="form-section">
+                <h4><i class="fas fa-certificate"></i> Step 5: NSF Certification</h4>
+
+                <div class="preparation-box">
+                    <h6><i class="fas fa-lightbulb"></i> What you'll need:</h6>
+                    <ul>
+                        <li>NSF certification type you're pursuing</li>
+                        <li>Current certification status</li>
+                        <li>Test results and dates (if applicable)</li>
+                        <li>Label claims and intended use information</li>
+                    </ul>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="requires_nsf_certification" name="requires_nsf_certification">
+                    <label class="form-check-label" for="requires_nsf_certification">
+                        <strong>This product requires NSF certification</strong>
+                    </label>
+                </div>
+
+                <div id="nsfFields" style="display:none;">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nsf_certification_type" class="form-label">NSF Certification Type</label>
+                            <select class="form-select" id="nsf_certification_type" name="nsf_certification_type">
+                                <option value="">Select type...</option>
+                                <option value="NSF Certified for Sport">NSF Certified for Sport</option>
+                                <option value="NSF/ANSI 173">NSF/ANSI 173 - Dietary Supplements</option>
+                                <option value="NSF 229">NSF 229 - Dietary Supplement Ingredients</option>
+                                <option value="NSF 527">NSF 527 - Vitamin/Mineral Supplements</option>
+                                <option value="NSF 372">NSF 372 - Drinking Water System Components</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nsf_certification_status" class="form-label">Certification Status</label>
+                            <select class="form-select" id="nsf_certification_status" name="nsf_certification_status">
+                                <option value="Not Started">Not Started</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Certified">Certified</option>
+                                <option value="Expired">Expired</option>
+                                <option value="Pending Renewal">Pending Renewal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nsf_certification_number" class="form-label">Certification Number</label>
+                            <input type="text" class="form-control" id="nsf_certification_number" name="nsf_certification_number">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nsf_certification_date" class="form-label">Certification Date</label>
+                            <input type="date" class="form-control" id="nsf_certification_date" name="nsf_certification_date">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nsf_expiration_date" class="form-label">Expiration Date</label>
+                            <input type="date" class="form-control" id="nsf_expiration_date" name="nsf_expiration_date">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nsf_last_test_date" class="form-label">Last Test Date</label>
+                            <input type="date" class="form-control" id="nsf_last_test_date" name="nsf_last_test_date">
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="nsf_banned_substances_tested" name="nsf_banned_substances_tested">
+                        <label class="form-check-label" for="nsf_banned_substances_tested">
+                            Tested for 290+ banned substances (NSF Certified for Sport)
+                        </label>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nsf_test_results" class="form-label">Test Results Summary</label>
+                        <textarea class="form-control" id="nsf_test_results" name="nsf_test_results" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <h5 class="mt-4">Label Information</h5>
+                <div class="mb-3">
+                    <label for="label_claims" class="form-label">Label Claims</label>
+                    <textarea class="form-control" id="label_claims" name="label_claims" rows="2" placeholder="e.g., Supports Athletic Performance, High Protein"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="intended_use" class="form-label">Intended Use</label>
+                    <textarea class="form-control" id="intended_use" name="intended_use" rows="2"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="directions_for_use" class="form-label">Directions for Use</label>
+                    <textarea class="form-control" id="directions_for_use" name="directions_for_use" rows="2"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="warnings" class="form-label">Warnings & Precautions</label>
+                    <textarea class="form-control" id="warnings" name="warnings" rows="2"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 6: Documents & Files -->
+        <div class="step-content" data-step="6">
+            <div class="form-section">
+                <h4><i class="fas fa-file-upload"></i> Step 6: Documents & Files</h4>
+
+                <div class="preparation-box">
+                    <h6><i class="fas fa-lightbulb"></i> What you'll need:</h6>
+                    <ul>
+                        <li>Bill of Materials (BOM) - CSV or Excel file</li>
+                        <li>Product artwork/label - Image or PDF</li>
+                        <li>Safety Data Sheet (SDS)</li>
+                        <li>Certificate of Analysis (COA)</li>
+                        <li>Any other supporting documentation</li>
+                    </ul>
+                </div>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Note:</strong> You can upload multiple documents or skip this step and add them later via bulk upload.
+                </div>
+
+                <div class="mb-4">
+                    <label for="bom_file" class="form-label"><i class="fas fa-list-ul"></i> Bill of Materials (BOM)</label>
+                    <input type="file" class="form-control" id="bom_file" name="bom_file" accept=".csv,.xlsx,.xls">
+                    <div class="form-text">Upload a CSV or Excel file containing the complete BOM</div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="artwork_file" class="form-label"><i class="fas fa-image"></i> Product Artwork/Label</label>
+                    <input type="file" class="form-control" id="artwork_file" name="artwork_file" accept=".jpg,.jpeg,.png,.pdf">
+                    <div class="form-text">Upload product label or artwork file (JPG, PNG, or PDF)</div>
+                </div>
+
+                <h5 class="mt-4">Document URLs</h5>
+                <div class="mb-3">
+                    <label for="sds_document_url" class="form-label">Safety Data Sheet (SDS) URL</label>
+                    <input type="url" class="form-control" id="sds_document_url" name="sds_document_url" placeholder="https://">
+                </div>
+
+                <div class="mb-3">
+                    <label for="coa_document_url" class="form-label">Certificate of Analysis (COA) URL</label>
+                    <input type="url" class="form-control" id="coa_document_url" name="coa_document_url" placeholder="https://">
+                </div>
+
+                <div class="mb-3">
+                    <label for="label_image_url" class="form-label">Label Image URL</label>
+                    <input type="url" class="form-control" id="label_image_url" name="label_image_url" placeholder="https://">
+                </div>
+
+                <h5 class="mt-4">Contact Information</h5>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="primary_contact_name" class="form-label">Primary Contact Name</label>
+                        <input type="text" class="form-control" id="primary_contact_name" name="primary_contact_name">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="primary_contact_email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="primary_contact_email" name="primary_contact_email">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="primary_contact_phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="primary_contact_phone" name="primary_contact_phone">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Additional Notes</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="internal_notes" class="form-label">Internal Notes (Not Shared)</label>
+                    <textarea class="form-control" id="internal_notes" name="internal_notes" rows="3"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 7: Review & Submit -->
+        <div class="step-content" data-step="7">
+            <div class="form-section">
+                <h4><i class="fas fa-check-circle"></i> Step 7: Review & Submit</h4>
+
+                <div class="alert alert-success">
+                    <i class="fas fa-info-circle"></i> <strong>Almost done!</strong> Review the information below and click "Create SKU" to finish.
+                </div>
+
+                <div id="reviewSummary">
+                    <!-- Summary will be populated by JavaScript -->
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <h6><i class="fas fa-magic"></i> What happens next?</h6>
+                    <ul class="mb-0">
+                        <li>Your SKU will be automatically validated for NSF compliance</li>
+                        <li>Any banned substances will be flagged</li>
+                        <li>Missing required fields will be highlighted</li>
+                        <li>You can complete any skipped sections later</li>
+                        <li>Documents can be bulk uploaded after creation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="wizard-actions">
+            <div>
+                <button type="button" class="btn btn-secondary" id="prevBtn" style="display:none;">
+                    <i class="fas fa-arrow-left"></i> Previous
+                </button>
+            </div>
+            <div>
+                <button type="button" class="btn btn-outline-warning" id="skipBtn">
+                    Skip Step <i class="fas fa-forward"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="saveLaterBtn">
+                    <i class="fas fa-save"></i> Save & Complete Later
+                </button>
+                <button type="button" class="btn btn-primary" id="nextBtn">
+                    Next <i class="fas fa-arrow-right"></i>
+                </button>
+                <button type="submit" class="btn btn-success" id="submitBtn" style="display:none;">
+                    <i class="fas fa-check"></i> Create SKU
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentStep = 1;
+const totalSteps = 7;
+const stepStatus = {};
+let ingredientCount = 0;
+
+// Initialize
+$(document).ready(function() {
+    updateStepDisplay();
+
+    // NSF certification toggle
+    $('#requires_nsf_certification').change(function() {
+        $('#nsfFields').toggle(this.checked);
+    });
+});
+
+// Navigation
+$('#nextBtn').click(function() {
+    if (validateCurrentStep()) {
+        markStepComplete(currentStep);
+        currentStep++;
+        if (currentStep <= totalSteps) {
+            updateStepDisplay();
+        }
+    }
+});
+
+$('#prevBtn').click(function() {
+    currentStep--;
+    updateStepDisplay();
+});
+
+$('#skipBtn').click(function() {
+    markStepSkipped(currentStep);
+    currentStep++;
+    if (currentStep <= totalSteps) {
+        updateStepDisplay();
+    }
+});
+
+$('#saveLaterBtn').click(function() {
+    if (confirm('Save progress and complete this SKU later?')) {
+        // Set completion status
+        updateCompletionStatus();
+        // Submit form (will create SKU with partial data)
+        $('#skuWizardForm').submit();
+    }
+});
+
+// Add ingredient
+$('#addIngredient').click(function() {
+    ingredientCount++;
+    const ingredientHtml = `
+        <div class="card mb-3 ingredient-card" data-ingredient="${ingredientCount}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0">Ingredient #${ingredientCount}</h6>
+                    <button type="button" class="btn btn-sm btn-danger remove-ingredient">
+                        <i class="fas fa-trash"></i> Remove
+                    </button>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Ingredient Name</label>
+                        <input type="text" class="form-control" name="ingredients[${ingredientCount}][name]" required>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Amount</label>
+                        <input type="text" class="form-control" name="ingredients[${ingredientCount}][amount]" placeholder="e.g., 500mg">
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Source/Form</label>
+                        <input type="text" class="form-control" name="ingredients[${ingredientCount}][source]" placeholder="e.g., Ascorbic Acid">
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    $('#ingredientsList').append(ingredientHtml);
+});
+
+// Remove ingredient
+$(document).on('click', '.remove-ingredient', function() {
+    $(this).closest('.ingredient-card').remove();
+});
+
+function updateStepDisplay() {
+    // Hide all steps
+    $('.step-content').removeClass('active');
+    $('.wizard-step').removeClass('active');
+
+    // Show current step
+    $(`.step-content[data-step="${currentStep}"]`).addClass('active');
+    $(`.wizard-step[data-step="${currentStep}"]`).addClass('active');
+
+    // Update buttons
+    $('#prevBtn').toggle(currentStep > 1);
+    $('#nextBtn').toggle(currentStep < totalSteps);
+    $('#submitBtn').toggle(currentStep === totalSteps);
+    $('#skipBtn').toggle(currentStep < totalSteps);
+
+    // Update review if on last step
+    if (currentStep === totalSteps) {
+        generateReviewSummary();
+    }
+}
+
+function validateCurrentStep() {
+    // Validate required fields in current step
+    const currentStepDiv = $(`.step-content[data-step="${currentStep}"]`);
+    const requiredFields = currentStepDiv.find('[required]');
+    let isValid = true;
+
+    requiredFields.each(function() {
+        if (!$(this).val()) {
+            isValid = false;
+            $(this).addClass('is-invalid');
+        } else {
+            $(this).removeClass('is-invalid');
+        }
+    });
+
+    return isValid;
+}
+
+function markStepComplete(step) {
+    stepStatus[step] = 'completed';
+    $(`.wizard-step[data-step="${step}"]`).removeClass('skipped').addClass('completed');
+}
+
+function markStepSkipped(step) {
+    stepStatus[step] = 'skipped';
+    $(`.wizard-step[data-step="${step}"]`).addClass('skipped');
+}
+
+function updateCompletionStatus() {
+    // Calculate completion percentage
+    const totalFields = $('input, textarea, select').not('[type="button"]').length;
+    const filledFields = $('input, textarea, select').not('[type="button"]').filter(function() {
+        return $(this).val() !== '';
+    }).length;
+
+    const percentage = Math.round((filledFields / totalFields) * 100);
+
+    // Add hidden field for completion data
+    $('<input>').attr({
+        type: 'hidden',
+        name: 'completion_percentage',
+        value: percentage
+    }).appendTo('#skuWizardForm');
+
+    $('<input>').attr({
+        type: 'hidden',
+        name: 'completion_status',
+        value: JSON.stringify(stepStatus)
+    }).appendTo('#skuWizardForm');
+}
+
+function generateReviewSummary() {
+    let html = '<div class="row">';
+
+    // Basic Info
+    html += '<div class="col-md-6 mb-3">';
+    html += '<div class="card"><div class="card-header">Basic Information</div><div class="card-body">';
+    html += `<p><strong>SKU Code:</strong> ${$('#sku_code').val() || '<em>Not provided</em>'}</p>`;
+    html += `<p><strong>Name:</strong> ${$('#name').val() || '<em>Not provided</em>'}</p>`;
+    html += `<p><strong>Brand:</strong> ${$('#brand_name').val() || '<em>Not provided</em>'}</p>`;
+    html += `<p><strong>Type:</strong> ${$('#product_type').val() || '<em>Not provided</em>'}</p>`;
+    html += '</div></div></div>';
+
+    // Manufacturing
+    html += '<div class="col-md-6 mb-3">';
+    html += '<div class="card"><div class="card-header">Manufacturing</div><div class="card-body">';
+    html += `<p><strong>Manufacturer:</strong> ${$('#manufacturer_name').val() || '<em>Not provided</em>'}</p>`;
+    html += `<p><strong>Facility:</strong> ${$('#manufacturer_facility').val() || '<em>Not provided</em>'}</p>`;
+    html += `<p><strong>Supplier:</strong> ${$('#supplier_name').val() || '<em>Not provided</em>'}</p>`;
+    html += '</div></div></div>';
+
+    // NSF
+    html += '<div class="col-md-6 mb-3">';
+    html += '<div class="card"><div class="card-header">NSF Certification</div><div class="card-body">';
+    const requiresNSF = $('#requires_nsf_certification').is(':checked');
+    html += `<p><strong>Requires NSF:</strong> ${requiresNSF ? 'Yes' : 'No'}</p>`;
+    if (requiresNSF) {
+        html += `<p><strong>Type:</strong> ${$('#nsf_certification_type').val() || '<em>Not selected</em>'}</p>`;
+        html += `<p><strong>Status:</strong> ${$('#nsf_certification_status').val() || '<em>Not selected</em>'}</p>`;
+    }
+    html += '</div></div></div>';
+
+    // Documents
+    html += '<div class="col-md-6 mb-3">';
+    html += '<div class="card"><div class="card-header">Documents</div><div class="card-body">';
+    const bomFile = $('#bom_file')[0].files[0];
+    const artworkFile = $('#artwork_file')[0].files[0];
+    html += `<p><strong>BOM File:</strong> ${bomFile ? bomFile.name : '<em>Not uploaded</em>'}</p>`;
+    html += `<p><strong>Artwork:</strong> ${artworkFile ? artworkFile.name : '<em>Not uploaded</em>'}</p>`;
+    html += `<p><strong>SDS URL:</strong> ${$('#sds_document_url').val() ? 'Provided' : '<em>Not provided</em>'}</p>`;
+    html += '</div></div></div>';
+
+    html += '</div>';
+
+    $('#reviewSummary').html(html);
+}
+
+// Form submission
+$('#skuWizardForm').submit(function(e) {
+    e.preventDefault();
+
+    updateCompletionStatus();
+
+    // Convert tags to array
+    const tagsInput = $('#tags').val();
+    if (tagsInput) {
+        const tagsArray = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+        $('<input>').attr({
+            type: 'hidden',
+            name: 'tags_array',
+            value: JSON.stringify(tagsArray)
+        }).appendTo(this);
+    }
+
+    // Show loading
+    $('#submitBtn').html('<i class="fas fa-spinner fa-spin"></i> Creating SKU...').prop('disabled', true);
+
+    // Submit via AJAX
+    const formData = new FormData(this);
+
+    $.ajax({
+        url: '/api/skus',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(response) {
+            alert('SKU created successfully!');
+            window.location.href = `/skus/${response.id}`;
+        },
+        error: function(xhr) {
+            alert('Error creating SKU: ' + (xhr.responseJSON?.detail || 'Unknown error'));
+            $('#submitBtn').html('<i class="fas fa-check"></i> Create SKU').prop('disabled', false);
+        }
+    });
+});
+</script>
+{% endblock %}
