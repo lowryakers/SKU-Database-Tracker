@@ -139,26 +139,36 @@ class BulkUploadService:
         # Try to extract SKU code from various possible column names
         sku_code = cls._find_column(row, [
             'SKU_Code', 'sku_code', 'SKU', 'sku', 'Product_Code', 'product_code',
-            'Item', 'Item Code', 'ItemCode', 'item_code', 'Product', 'product'
+            'Item', 'Item Code', 'ItemCode', 'item_code', 'Product', 'product',
+            'Product number', 'Product Number', 'PRODUCT NUMBER', 'Product_number',
+            'BOM number', 'BOM Number', 'BOM_number', 'bom_number',
+            'Product name', 'Product Name', 'PRODUCT NAME', 'Product_name'
         ])
 
         ingredient_name = cls._find_column(row, [
             'Ingredient_Name', 'ingredient_name', 'Ingredient', 'ingredient',
             'Name', 'name', 'Component', 'component', 'Part', 'part',
-            'Material', 'material', 'Item Name', 'Description'
+            'Material', 'material', 'Item Name', 'Description',
+            'Part description', 'Part Description', 'PART DESCRIPTION', 'Part_description',
+            'Part No.', 'Part No', 'Part_No', 'PartNo', 'Part Number', 'Part_Number',
+            'Component Name', 'Component Description', 'Material Name',
+            'BOM name', 'BOM Name', 'BOM_name', 'bom_name'
         ])
 
         if sku_code and ingredient_name:
             amount = cls._find_column(row, [
-                'Amount', 'amount', 'Quantity', 'quantity', 'Qty', 'qty', 'Weight', 'weight'
+                'Amount', 'amount', 'Quantity', 'quantity', 'Qty', 'qty', 'Weight', 'weight',
+                'QTY', 'QUANTITY', 'Amount Required', 'Required Quantity'
             ]) or ''
 
             source = cls._find_column(row, [
-                'Source', 'source', 'Form', 'form', 'Type', 'type', 'Origin', 'origin'
+                'Source', 'source', 'Form', 'form', 'Type', 'type', 'Origin', 'origin',
+                'Supplier', 'supplier', 'Vendor', 'vendor', 'Manufacturer'
             ]) or ''
 
             unit = cls._find_column(row, [
-                'Unit', 'unit', 'UOM', 'uom', 'Units', 'units'
+                'Unit', 'unit', 'UOM', 'uom', 'Units', 'units',
+                'Unit of measurement', 'Unit_of_measurement', 'Measurement Unit'
             ]) or ''
 
             cas_number = cls._find_column(row, [
